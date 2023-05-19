@@ -8,7 +8,7 @@ from spray_backend.models import Movie
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
-from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer
+from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
 from django.middleware.csrf import get_token
 
@@ -31,14 +31,14 @@ def csrf_token_view(request):
 @api_view(['POST'])
 def signup_user(request):
     if request.method == 'POST':
-        print('--------')
         print(request.data)
         form = CreateUserForm(request.data)
-        print('+++++++')
         if form.is_valid():
-            print('///////')
             form.save()
-            return Response('Successful Signup!', status=status.HTTP_200_OK)
+            serializer = PersonSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response('Successful Signup!', status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def login_user(request):

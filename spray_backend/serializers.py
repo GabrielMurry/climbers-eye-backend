@@ -1,12 +1,35 @@
-from .models import Gym, SprayWall, Boulder
+from .models import Gym, SprayWall, Boulder, Person, Send, Like
 from rest_framework import serializers
 
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = '__all__'
+
+class SendSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Send
+        fields = '__all__'
+
+class PersonSerializer(serializers.ModelSerializer):
+    # A person can have many likes and sends
+    likes = LikeSerializer(many=True, read_only=True)
+    sends = SendSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Person
+        fields = '__all__'
+
 class BoulderSerializer(serializers.ModelSerializer):
+    # A boulder can have many persons
+    persons = PersonSerializer(many=True, read_only=True)
+
     class Meta:
         model = Boulder
         fields = '__all__'
 
 class SprayWallSerializer(serializers.ModelSerializer):
+    # A spray wall can have many boulders
     boulders = BoulderSerializer(many=True, read_only=True)
 
     class Meta:
@@ -14,9 +37,9 @@ class SprayWallSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class GymSerializer(serializers.ModelSerializer):
+    # A gym can have many spray walls
     spraywalls = SprayWallSerializer(many=True, read_only=True)
 
     class Meta:
         model = Gym
         fields = '__all__'
-        
