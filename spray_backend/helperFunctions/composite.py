@@ -1,4 +1,4 @@
-from PIL import Image
+from PIL import Image, ImageEnhance
 from io import BytesIO
 import base64
 
@@ -28,11 +28,20 @@ def mask_drawing(drawing_image, photo_image):
     return drawing_image
 
 def combine_images(drawing_image, photo_image):
+    # gray-scale photo image, but before converting to 'L' mode, grab the alpha channel
+    # converting to 'L' mode (Luminance) gray-scales image efficiently through a single 8-bit channel per pixel, rather than RGBA which provides 4 x 8-bit channels per pixel
     alpha_channel  = photo_image.getchannel('A')
     gray_channels = photo_image.convert('L')
-    result = Image.merge('RGBA', (gray_channels, gray_channels, gray_channels, alpha_channel))
-    result.alpha_composite(drawing_image)
-    return result
+    # convert back to RGBA but merge the gray channel values as 'RGB' and the original alpha channel for 'A', all as a tuple.
+    photo_image_result = Image.merge('RGBA', (gray_channels, gray_channels, gray_channels, alpha_channel))
+    # darken photo image background before alpha compositing the images together
+    brightnessLevel = ImageEnhance.Brightness(photo_image_result)
+    # factor > 1 brightens. factor < 1 darkens
+    factor = 0.4
+    photo_image_result = brightnessLevel.enhance(factor)
+    # alpha composite to place drawing image on top of manipulated photo image
+    photo_image_result.alpha_composite(drawing_image)
+    return photo_image_result
 
 def image_to_base64_string(result):
     buffered = BytesIO()

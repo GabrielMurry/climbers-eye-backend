@@ -19,10 +19,18 @@ from django.urls import path
 from spray_backend import views
 from django.conf.urls.static import static
 from django.conf import settings
+from .views import csrf_token_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('csrf-token/', csrf_token_view, name='csrf_token'),
+    path('login/', views.login_user),
+    path('signup/', views.signup_user),
+    path('logout/', views.logout_user),
     path('composite/', views.composite),
+    path('gym/', views.gym),
+    path('spraywall/', views.spraywall),
+    path('boulder/', views.boulder),
     path('movies/<int:movie_id>', views.movie),
 ]
 
