@@ -22,7 +22,6 @@ MEDIA_ROOT = ''
 # Path that will be accessed through the browser to access these files
 MEDIA_URL = ''
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 

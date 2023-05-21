@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
-from .models import SprayWall
+from .models import SprayWall, Person
 from spray_backend.models import Movie
 from rest_framework.response import Response
 from rest_framework import status
@@ -19,7 +19,6 @@ def movie(request, movie_id):
     else:
         raise Http404('Movie does not exist')
     
-
 @api_view(['GET'])
 def csrf_token_view(request):
     if request.method == 'GET':
@@ -27,18 +26,22 @@ def csrf_token_view(request):
         print(csrf_token)
         return Response({'csrfToken': csrf_token})
     
-
 @api_view(['POST'])
 def signup_user(request):
     if request.method == 'POST':
-        print(request.data)
         form = CreateUserForm(request.data)
         if form.is_valid():
             form.save()
             serializer = PersonSerializer(data=request.data)
             if serializer.is_valid():
                 serializer.save()
-                return Response('Successful Signup!', status=status.HTTP_200_OK)
+                csrf_token = get_token(request)
+                print(csrf_token)
+                return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+            else:
+                print(serializer.errors)
+        else:
+            print(form.errors)
 
 @api_view(['POST'])
 def login_user(request):
@@ -48,7 +51,9 @@ def login_user(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return Response('Successful Login!', status=status.HTTP_200_OK)
+            csrf_token = get_token(request)
+            print(csrf_token)
+            return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
 
@@ -57,7 +62,7 @@ def logout_user(request):
     logout(request)
     return Response('logged out')
     
-@api_view(['GET'])    
+@api_view(['POST'])    
 def composite(request):
     drawing_image, photo_image = base64_string_to_image(request.data.get('drawing'), request.data.get('photo'))
     drawing_image = increase_drawing_opacity(drawing_image)
@@ -67,13 +72,35 @@ def composite(request):
     return Response(data_uri)
 
 @api_view(['POST'])
-def gym(request):
+def add_gym(request):
     if request.method == 'POST':
-        serializer = GymSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            # pass data back in response
-            return Response(serializer.data)
+        # Add Gym
+        gym_serializer = GymSerializer(data=request.data.get('gym'))
+        if gym_serializer.is_valid():
+            gym_instance = gym_serializer.save() # Save the gym instance and get the saved object
+            gym_id = gym_instance.id  # Access the ID of the recently created gym
+            request.data['spraywall']['gym'] = gym_id # Insert recently created gym_id as a reference for spraywall's gym foreign key
+            # Add Spray Wall
+            spraywall_serializer = SprayWallSerializer(data=request.data.get('spraywall'))
+            if spraywall_serializer.is_valid():
+                spraywall_instance = spraywall_serializer.save()
+                spraywall_id = spraywall_instance.id
+                # Update Person data: person's gym_id foreign key and spraywall_id foreign key --> signifies person's default Gym and Wall
+                person = Person.objects.get(username=request.user)
+                person_data = {
+                    'gym': gym_id,
+                    'spraywall': spraywall_id
+                }
+                person_serializer = PersonSerializer(instance=person, data=person_data, partial=True) # partial=True allows for partial updates
+                if person_serializer.is_valid():
+                    person_serializer.save()
+                    return Response('Added gym and spraywall successfully!', status=status.HTTP_200_OK)
+                else:
+                    print(person_serializer.errors)
+            else:
+                print(spraywall_serializer.errors)
+        else:
+            print(gym_serializer.errors)
         
 @api_view(['GET', 'POST'])
 def spraywall(request):
