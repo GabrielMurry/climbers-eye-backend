@@ -29,6 +29,7 @@ urlpatterns = [
     path('logout/', views.logout_user),
     path('composite/', views.composite),
     path('gym/', views.add_gym),
+    path('home/', views.home),
     path('spraywall/', views.spraywall),
     path('boulder/', views.boulder),
     path('movies/<int:movie_id>', views.movie),

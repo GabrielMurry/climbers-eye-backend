@@ -94,13 +94,27 @@ def add_gym(request):
                 person_serializer = PersonSerializer(instance=person, data=person_data, partial=True) # partial=True allows for partial updates
                 if person_serializer.is_valid():
                     person_serializer.save()
-                    return Response('Added gym and spraywall successfully!', status=status.HTTP_200_OK)
+                    csrf_token = get_token(request)
+                    return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
                 else:
                     print(person_serializer.errors)
             else:
                 print(spraywall_serializer.errors)
         else:
             print(gym_serializer.errors)
+
+@api_view(['GET'])
+def home(request):
+    if request.method == 'GET':
+        person = Person.objects.get(username=request.user)
+        gym_name = person.gym.name
+        spraywall_name = person.spraywall.name
+        image_uri = 'data:image/png;base64,' + person.spraywall.spraywall_image_data
+        image_width = person.spraywall.spraywall_image_width
+        image_height = person.spraywall.spraywall_image_height
+        data = { 'gymName': gym_name, 'spraywallName': spraywall_name, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height }
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         
 @api_view(['GET', 'POST'])
 def spraywall(request):
