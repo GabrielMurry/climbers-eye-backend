@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
-from .models import SprayWall, Person
+from .models import SprayWall, Person, Boulder
 from spray_backend.models import Movie
 from rest_framework.response import Response
 from rest_framework import status
@@ -132,10 +132,41 @@ def spraywall(request):
         return Response(serializer.data)
 
 @api_view(['POST'])
-def boulder(request):
+def add_boulder(request):
     if request.method == 'POST':
+        person = Person.objects.get(username=request.user)
+        request.data['spraywall'] = person.spraywall.id
+        request.data['setter_person'] = person.id
         serializer = BoulderSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            # pass data back in response
-            return Response('hi') 
+            csrf_token = get_token(request)
+            return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+        
+@api_view(['GET'])
+def list(request):
+    if request.method == 'GET':
+        # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
+        data = Boulder.objects.all().values(
+            'name',
+            'setter_person__username',
+            'first_ascent_person__username',
+            'sends',
+            'grade',
+            'rating',
+            'id',
+        )
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+def boulder_image(request, boulder_id):
+    if request.method == 'GET':
+        boulder = Boulder.objects.get(pk=boulder_id)
+        data = { 
+            'image_uri': "data:image/png;base64," + boulder.boulder_image_data,
+            'image_width': boulder.boulder_image_width,
+            'image_height': boulder.boulder_image_height 
+        }
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)

@@ -6,7 +6,7 @@ class Movie(models.Model):
 
 class Gym(models.Model):
     name = models.CharField(max_length=100)
-    location = models.CharField(max_length=100)
+    location = models.CharField(max_length=100, blank=True, null=True)
     type = models.CharField(max_length=20)  # 'commercial' or 'home'
     date_created = models.DateTimeField(auto_now_add=True)
 
@@ -17,7 +17,7 @@ class SprayWall(models.Model):
     spraywall_image_height = models.CharField(max_length=10, default=1000)
     date_created = models.DateTimeField(auto_now_add=True)
     # foreign keys
-    gym = models.ForeignKey(Gym, on_delete=models.CASCADE)
+    gym = models.ForeignKey(Gym, on_delete=models.CASCADE, blank=True, null=True)
 
 class Person(models.Model):
     username = models.CharField(max_length=50)
@@ -31,19 +31,22 @@ class Person(models.Model):
     spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE, blank=True, null=True)
 
 class Boulder(models.Model):
-    name = models.CharField(max_length=100)
-    grade = models.CharField(max_length=10)
-    rating = models.DecimalField(max_digits=3, decimal_places=2)
-    sends = models.IntegerField()
+    name = models.CharField(max_length=50)
+    description = models.CharField(max_length=100, blank=True, null=True)
+    matching = models.BooleanField(default=True)
+    publish = models.BooleanField(default=True)
+    grade = models.CharField(max_length=10, blank=True, null=True)
+    rating = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True)
+    sends = models.IntegerField(default=0)
     boulder_image_data = models.TextField()
     boulder_image_width = models.CharField(max_length=10, default=1000)
     boulder_image_height = models.CharField(max_length=10, default=1000)
     likes_count = models.IntegerField(default=0)
     date_created = models.DateTimeField(auto_now_add=True)
     # foreign keys
-    spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE)
-    # setter_person = models.ForeignKey(Person, on_delete=models.CASCADE)
-    # first_ascent_person = models.ForeignKey(Person, on_delete=models.CASCADE)
+    spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE, blank=True, null=True)
+    setter_person = models.ForeignKey(Person, on_delete=models.CASCADE, blank=True, null=True, related_name='setter_person')
+    first_ascent_person = models.ForeignKey(Person, on_delete=models.CASCADE, blank=True, null=True, related_name='first_ascent_person')
 
 class Like(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)

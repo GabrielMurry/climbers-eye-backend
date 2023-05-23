@@ -28,10 +28,12 @@ urlpatterns = [
     path('signup/', views.signup_user),
     path('logout/', views.logout_user),
     path('composite/', views.composite),
-    path('gym/', views.add_gym),
+    path('add_gym/', views.add_gym),
     path('home/', views.home),
+    path('list/', views.list),
     path('spraywall/', views.spraywall),
-    path('boulder/', views.boulder),
+    path('add_boulder/', views.add_boulder),
+    path('boulder_image/<int:boulder_id>', views.boulder_image),
     path('movies/<int:movie_id>', views.movie),
 ]
 
