@@ -3,12 +3,12 @@ from django.shortcuts import render
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
-from .models import SprayWall, Person, Boulder
+from .models import SprayWall, Person, Boulder, Like
 from spray_backend.models import Movie
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
-from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer
+from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
 from django.middleware.csrf import get_token
 
@@ -32,14 +32,14 @@ def signup_user(request):
         form = CreateUserForm(request.data)
         if form.is_valid():
             form.save()
-            serializer = PersonSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
+            person_serializer = PersonSerializer(data=request.data)
+            if person_serializer.is_valid():
+                person_instance = person_serializer.save()
                 csrf_token = get_token(request)
                 username = request.data.get('username')
-                return Response({'csrfToken': csrf_token, 'username': username}, status=status.HTTP_200_OK)
+                return Response({'csrfToken': csrf_token, 'userId': person_instance.id, 'username': username}, status=status.HTTP_200_OK)
             else:
-                print(serializer.errors)
+                print(person_serializer.errors)
         else:
             print(form.errors)
 
@@ -52,7 +52,9 @@ def login_user(request):
         if user is not None:
             login(request, user)
             csrf_token = get_token(request)
-            return Response({'csrfToken': csrf_token, 'username': username}, status=status.HTTP_200_OK)
+            person = Person.objects.get(username=username)
+            print(person.id)
+            return Response({'csrfToken': csrf_token, 'userId': person.id, 'username': username}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
 
@@ -71,7 +73,7 @@ def composite(request):
     return Response(data_uri)
 
 @api_view(['POST'])
-def add_gym(request, username):
+def add_gym(request, user_id):
     if request.method == 'POST':
         # Add Gym
         gym_serializer = GymSerializer(data=request.data.get('gym'))
@@ -85,7 +87,7 @@ def add_gym(request, username):
                 spraywall_instance = spraywall_serializer.save()
                 spraywall_id = spraywall_instance.id
                 # Update Person data: person's gym_id foreign key and spraywall_id foreign key --> signifies person's default Gym and Wall
-                person = Person.objects.get(username=username)
+                person = Person.objects.get(id=user_id)
                 person_data = {
                     'gym': gym_id,
                     'spraywall': spraywall_id
@@ -103,9 +105,9 @@ def add_gym(request, username):
             print(gym_serializer.errors)
 
 @api_view(['GET'])
-def home(request, username):
+def home(request, user_id):
     if request.method == 'GET':
-        person = Person.objects.get(username=username)
+        person = Person.objects.get(id=user_id)
         gym_name = person.gym.name
         spraywall_name = person.spraywall.name
         spraywall_id = person.spraywall.id
@@ -132,9 +134,9 @@ def spraywall(request):
         return Response(serializer.data)
 
 @api_view(['POST'])
-def add_boulder(request, username):
+def add_boulder(request, user_id):
     if request.method == 'POST':
-        person = Person.objects.get(username=username)
+        person = Person.objects.get(id=user_id)
         request.data['spraywall'] = person.spraywall.id
         request.data['setter_person'] = person.id
         serializer = BoulderSerializer(data=request.data)
@@ -146,25 +148,31 @@ def add_boulder(request, username):
                 'description': boulder.description, 
                 'matching': boulder.matching, 
                 'publish': boulder.publish,
-                'setter_person__username': boulder.setter_person.username,
-                'first_ascent_person__username': boulder.first_ascent_person.username if boulder.first_ascent_person else None,
+                'setter': boulder.setter_person.username,
+                'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None,
                 'sends': boulder.sends,
                 'grade': boulder.grade,
                 'rating': boulder.rating,
                 'likes_count': boulder.likes_count,
                 'id': boulder.id
             }
+            print(data)
             csrf_token = get_token(request)
             return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         
 @api_view(['GET'])
-def list(request, spraywall_id):
+def list(request, spraywall_id, user_id):
     if request.method == 'GET':
         # get all boulders on the specified spraywall
         boulders = Boulder.objects.filter(spraywall=spraywall_id)
         # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
-        data = [
-            {
+        data = []
+        for boulder in boulders:
+            liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
+            liked_boulder = False
+            if liked_row.exists():
+                liked_boulder = True
+            data.append({
                 'id': boulder.id, 
                 'name': boulder.name, 
                 'description': boulder.description, 
@@ -175,9 +183,9 @@ def list(request, spraywall_id):
                 'sends': boulder.sends, 
                 'grade': boulder.grade, 
                 'rating': boulder.rating, 
-                'likes': boulder.likes_count
-            } for boulder in boulders
-        ]
+                'likes': boulder.likes_count,
+                'personLiked': liked_boulder 
+            })
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
     
@@ -188,7 +196,26 @@ def boulder_image(request, boulder_id):
         data = { 
             'image_uri': "data:image/png;base64," + boulder.boulder_image_data,
             'image_width': boulder.boulder_image_width,
-            'image_height': boulder.boulder_image_height 
+            'image_height': boulder.boulder_image_height,
         }
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+
+@api_view(['POST', 'DELETE'])
+def like_boulder(request, boulder_id, user_id):
+    if request.method == 'POST':
+        data = { 'person': user_id, 'boulder': boulder_id }
+        serializer = LikeSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            data = {'personLiked': True}
+            csrf_token = get_token(request)
+            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(serializer.errors)
+    if request.method == 'DELETE':
+        liked_row = Like.objects.filter(person=user_id, boulder=boulder_id)
+        liked_row.delete()
+        data = {'personLiked': False}
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
