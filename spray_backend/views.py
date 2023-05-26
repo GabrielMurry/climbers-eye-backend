@@ -3,12 +3,12 @@ from django.shortcuts import render
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
-from .models import SprayWall, Person, Boulder, Like
+from .models import SprayWall, Person, Boulder, Like, Send
 from spray_backend.models import Movie
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
-from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer
+from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
 from django.middleware.csrf import get_token
 
@@ -150,13 +150,12 @@ def add_boulder(request, user_id):
                 'publish': boulder.publish,
                 'setter': boulder.setter_person.username,
                 'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None,
-                'sends': boulder.sends,
+                'sends': boulder.sends_count,
                 'grade': boulder.grade,
-                'rating': boulder.rating,
-                'likes_count': boulder.likes_count,
+                'quality': boulder.quality,
+                'likes': boulder.likes_count,
                 'id': boulder.id
             }
-            print(data)
             csrf_token = get_token(request)
             return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         
@@ -180,9 +179,9 @@ def list(request, spraywall_id, user_id):
                 'publish': boulder.publish, 
                 'setter': boulder.setter_person.username, 
                 'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
-                'sends': boulder.sends, 
+                'sends': boulder.sends_count, 
                 'grade': boulder.grade, 
-                'rating': boulder.rating, 
+                'quality': boulder.quality, 
                 'likes': boulder.likes_count,
                 'personLiked': liked_boulder 
             })
@@ -219,3 +218,43 @@ def like_boulder(request, boulder_id, user_id):
         data = {'personLiked': False}
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+    
+@api_view(['GET', 'POST'])
+def sent_boulder(request, boulder_id):
+    if request.method == 'POST':
+        # post new row that details user's attempts, chosen difficulty, quality, and notes for a particular boulder
+        # update new info for the actual Boulder --> ?
+        send_serializer = SendSerializer(data=request.data)
+        if send_serializer.is_valid():
+            send_serializer.save()
+            # sends = Send.objects.filter(boulder=boulder_id)
+            # for send in sends:
+            boulder = Boulder.objects.get(id=boulder_id)
+            boulder.grade = request.data.get('grade')
+            boulder.quality = request.data.get('quality')
+            if boulder.first_ascent_person is None:
+                person = Person.objects.get(id=request.data.get('person'))
+                boulder.first_ascent_person = person
+            boulder.save()
+            csrf_token = get_token(request)
+            return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+        else:
+            print(send_serializer.errors)
+    if request.method == 'GET':
+        # get the updated data for the boulder on the Boulder Screen
+        boulder = Boulder.objects.get(id=boulder_id)
+        data = {
+            'grade': boulder.grade,
+            'quality': boulder.quality,
+            'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
+        }
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+    
+@api_view(['DELETE'])
+def delete_boulder(request, boulder_id):
+    if request.method == 'DELETE':
+        boulder_row = Boulder.objects.get(id=boulder_id)
+        boulder_row.delete()
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)

@@ -36,8 +36,8 @@ class Boulder(models.Model):
     matching = models.BooleanField(default=True)
     publish = models.BooleanField(default=True)
     grade = models.CharField(max_length=10, blank=True, null=True)
-    rating = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True)
-    sends = models.IntegerField(default=0)
+    quality = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True) # decimalfield rather than smallintegerfield because we want to find the average quality rating for each boulder
+    sends_count = models.IntegerField(default=0)
     boulder_image_data = models.TextField()
     boulder_image_width = models.CharField(max_length=10, default=1000)
     boulder_image_height = models.CharField(max_length=10, default=1000)
@@ -60,6 +60,10 @@ class Like(models.Model):
 # tracking person's sends (successful climbs/ascents)
 class Send(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
+    attempts = models.SmallIntegerField(default=1) # attempts are 1 - 100 so we can definitely use smallintegerfield
+    grade = models.CharField(max_length=10, blank=True, null=True) 
+    quality = models.SmallIntegerField(default=3)
+    notes = models.TextField(blank=True, null=True)
     # foreign keys
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     boulder = models.ForeignKey(Boulder, on_delete=models.CASCADE)
