@@ -171,6 +171,10 @@ def list(request, spraywall_id, user_id):
             liked_boulder = False
             if liked_row.exists():
                 liked_boulder = True
+            sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
+            sent_boulder = False
+            if sent_row.exists():
+                sent_boulder = True
             data.append({
                 'id': boulder.id, 
                 'name': boulder.name, 
@@ -183,7 +187,8 @@ def list(request, spraywall_id, user_id):
                 'grade': boulder.grade, 
                 'quality': boulder.quality, 
                 'likes': boulder.likes_count,
-                'personLiked': liked_boulder 
+                'personLiked': liked_boulder,
+                'sentBoulder': sent_boulder
             })
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
@@ -220,7 +225,7 @@ def like_boulder(request, boulder_id, user_id):
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['GET', 'POST'])
-def sent_boulder(request, boulder_id):
+def sent_boulder(request, boulder_id, user_id):
     if request.method == 'POST':
         # post new row that details user's attempts, chosen difficulty, quality, and notes for a particular boulder
         # update new info for the actual Boulder --> ?
@@ -230,6 +235,7 @@ def sent_boulder(request, boulder_id):
             # sends = Send.objects.filter(boulder=boulder_id)
             # for send in sends:
             boulder = Boulder.objects.get(id=boulder_id)
+            boulder.sends_count += 1
             boulder.grade = request.data.get('grade')
             boulder.quality = request.data.get('quality')
             if boulder.first_ascent_person is None:
@@ -243,11 +249,17 @@ def sent_boulder(request, boulder_id):
     if request.method == 'GET':
         # get the updated data for the boulder on the Boulder Screen
         boulder = Boulder.objects.get(id=boulder_id)
+        sent_row = Send.objects.filter(person=user_id, boulder=boulder_id)
+        sent_boulder = False
+        if sent_row.exists():
+            sent_boulder = True
         data = {
             'grade': boulder.grade,
             'quality': boulder.quality,
             'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
+            'sentBoulder': sent_boulder
         }
+        print(data)
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
     
