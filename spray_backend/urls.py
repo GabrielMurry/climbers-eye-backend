@@ -31,6 +31,7 @@ urlpatterns = [
     path('add_gym/<int:user_id>', views.add_gym),
     path('home/<int:user_id>', views.home),
     path('list/<int:spraywall_id>/<int:user_id>', views.list),
+    path('query_list/<int:spraywall_id>/<int:user_id>', views.query_list),
     path('spraywall/', views.spraywall),
     path('add_boulder/<int:user_id>', views.add_boulder),
     path('boulder_image/<int:boulder_id>', views.boulder_image),

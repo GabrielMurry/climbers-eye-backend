@@ -11,6 +11,7 @@ from rest_framework.decorators import api_view
 from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
 from django.middleware.csrf import get_token
+from django.db.models import Q
 
 def movie(request, movie_id):
     movie = Movie.objects.get(pk=movie_id)
@@ -37,7 +38,7 @@ def signup_user(request):
                 person_instance = person_serializer.save()
                 csrf_token = get_token(request)
                 username = request.data.get('username')
-                return Response({'csrfToken': csrf_token, 'userId': person_instance.id, 'username': username}, status=status.HTTP_200_OK)
+                return Response({'csrfToken': csrf_token, 'userID': person_instance.id, 'username': username}, status=status.HTTP_200_OK)
             else:
                 print(person_serializer.errors)
         else:
@@ -53,8 +54,8 @@ def login_user(request):
             login(request, user)
             csrf_token = get_token(request)
             person = Person.objects.get(username=username)
-            print(person.id)
-            return Response({'csrfToken': csrf_token, 'userId': person.id, 'username': username}, status=status.HTTP_200_OK)
+            data = {'userID': person.id}
+            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
 
@@ -114,7 +115,7 @@ def home(request, user_id):
         image_uri = 'data:image/png;base64,' + person.spraywall.spraywall_image_data
         image_width = person.spraywall.spraywall_image_width
         image_height = person.spraywall.spraywall_image_height
-        data = { 'gymName': gym_name, 'spraywallName': spraywall_name, 'spraywallId': spraywall_id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height }
+        data = { 'gymName': gym_name, 'spraywallName': spraywall_name, 'spraywallID': spraywall_id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height }
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         
@@ -159,12 +160,49 @@ def add_boulder(request, user_id):
             csrf_token = get_token(request)
             return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 def list(request, spraywall_id, user_id):
     if request.method == 'GET':
         # get all boulders on the specified spraywall
         boulders = Boulder.objects.filter(spraywall=spraywall_id)
         # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
+        data = []
+        for boulder in boulders:
+            liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
+            liked_boulder = False
+            if liked_row.exists():
+                liked_boulder = True
+            sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
+            sent_boulder = False
+            if sent_row.exists():
+                sent_boulder = True
+            data.append({
+                'id': boulder.id, 
+                'name': boulder.name, 
+                'description': boulder.description, 
+                'matching': boulder.matching, 
+                'publish': boulder.publish, 
+                'setter': boulder.setter_person.username, 
+                'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
+                'sends': boulder.sends_count, 
+                'grade': boulder.grade, 
+                'quality': boulder.quality, 
+                'likes': boulder.likes_count,
+                'personLiked': liked_boulder,
+                'sentBoulder': sent_boulder
+            })
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def query_list(request, spraywall_id, user_id):
+    if request.method == 'GET':
+        # Convert search query to lowercase
+        search_query = request.GET.get('search', '').lower() # if the 'search' parameter is not found, it will return the default value, which is an empty string ''
+
+        # Query boulders that have at least one letter in their name matching the search query OR at least one letter in their grade, and are in the specific spraywall
+        boulders = Boulder.objects.filter(Q(name__icontains=search_query) | Q(grade__icontains=search_query), spraywall=spraywall_id, )
+         # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
         data = []
         for boulder in boulders:
             liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
