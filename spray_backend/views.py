@@ -3,7 +3,7 @@ from django.shortcuts import render
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
-from .models import SprayWall, Person, Boulder, Like, Send
+from .models import Gym, SprayWall, Person, Boulder, Like, Send
 from spray_backend.models import Movie
 from rest_framework.response import Response
 from rest_framework import status
@@ -54,7 +54,7 @@ def login_user(request):
             login(request, user)
             csrf_token = get_token(request)
             person = Person.objects.get(username=username)
-            data = {'userID': person.id}
+            data = {'userID': person.id, 'gymID': person.gym_id}
             return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
@@ -128,9 +128,7 @@ def spraywall(request):
             # pass data back in response
             return Response('hi')
     if request.method == 'GET':
-        print('hi')
         queryset = SprayWall.objects.filter(id=2)
-        print(queryset)
         serializer = SprayWallSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -198,10 +196,9 @@ def list(request, spraywall_id, user_id):
 def query_list(request, spraywall_id, user_id):
     if request.method == 'GET':
         # Convert search query to lowercase
-        search_query = request.GET.get('search', '').lower() # if the 'search' parameter is not found, it will return the default value, which is an empty string ''
-
-        # Query boulders that have at least one letter in their name matching the search query OR at least one letter in their grade, and are in the specific spraywall
-        boulders = Boulder.objects.filter(Q(name__icontains=search_query) | Q(grade__icontains=search_query), spraywall=spraywall_id, )
+        search_query = request.GET.get('search', '').lower()
+        # query boulders based on whatever matches name, grade, or setter username
+        boulders = Boulder.objects.filter(Q(name__icontains=search_query) | Q(grade__icontains=search_query) | Q(setter_person__username__icontains=search_query), spraywall=spraywall_id)
          # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
         data = []
         for boulder in boulders:
@@ -230,6 +227,10 @@ def query_list(request, spraywall_id, user_id):
             })
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+
+# @api_view(['GET'])
+# def filter_list(request, spraywall_id, user_id):
+
     
 @api_view(['GET'])
 def boulder_image(request, boulder_id):
@@ -297,7 +298,6 @@ def sent_boulder(request, boulder_id, user_id):
             'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
             'sentBoulder': sent_boulder
         }
-        print(data)
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
     
@@ -308,3 +308,49 @@ def delete_boulder(request, boulder_id):
         boulder_row.delete()
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+def query_gyms(request):
+    if request.method == 'GET':
+        # Convert search query to lowercase
+        search_query = request.GET.get('search', '').lower()
+        gyms = Gym.objects.filter(Q(name__icontains=search_query) | Q(location__icontains=search_query))
+         # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
+        data = []
+        for gym in gyms:
+            data.append({
+                'id': gym.id, 
+                'name': gym.name, 
+                'location': gym.location,
+            })
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+    
+@api_view(['PUT'])
+def choose_gym(request, user_id, gym_id):
+    if request.method == 'PUT':
+        # updating person's default gym and spraywall id to user's chosen gym
+        spraywall = SprayWall.objects.get(gym=gym_id)
+        person_data = {
+            'id': user_id,
+            'gym': gym_id,
+            'spraywall': spraywall.id
+        }
+        person = Person.objects.get(id=user_id)
+        # update or add user's new default gym and spraywall
+        person_serializer = PersonSerializer(instance=person, data=person_data, partial=True)
+        if person_serializer.is_valid():
+            person_instance = person_serializer.save()
+            person_updated = Person.objects.get(id=person_instance.id)
+            data = {
+                'gymName': person_updated.gym.name,
+                'spraywallName': person_updated.spraywall.name,
+                'spraywallID': person_updated.spraywall.id,
+                'imageUri': "data:image/png;base64," + person_updated.spraywall.spraywall_image_data,
+                'imageWidth': person_updated.spraywall.spraywall_image_width,
+                'imageHeight': person_updated.spraywall.spraywall_image_height,
+            }
+            csrf_token = get_token(request)
+            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(person_serializer.errors)

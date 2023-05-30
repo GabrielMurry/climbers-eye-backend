@@ -38,6 +38,8 @@ urlpatterns = [
     path('like_boulder/<int:boulder_id>/<int:user_id>', views.like_boulder),
     path('sent_boulder/<int:boulder_id>/<int:user_id>', views.sent_boulder),
     path('delete_boulder/<int:boulder_id>', views.delete_boulder),
+    path('query_gyms/', views.query_gyms),
+    path('choose_gym/<int:user_id>/<int:gym_id>', views.choose_gym),
     path('movies/<int:movie_id>', views.movie),
 ]
 
