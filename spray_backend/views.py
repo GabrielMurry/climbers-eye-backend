@@ -354,3 +354,20 @@ def choose_gym(request, user_id, gym_id):
             return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
+
+@api_view(['GET'])
+def profile(request, user_id):
+    if request.method == 'GET':
+        # get the total count of user's successful climbs
+        sends_count = Send.objects.filter(person=user_id).count()
+        # get the total count of user's created boulders
+        user_created_boulders_count = Boulder.objects.filter(setter_person=user_id).count()
+        # get the total count of user's 'liked' boulders
+        likes_count = Like.objects.filter(person=user_id).count()
+        data = {
+            'sends': sends_count,
+            'userCreatedBoulders': user_created_boulders_count,
+            'likes': likes_count
+        }
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)

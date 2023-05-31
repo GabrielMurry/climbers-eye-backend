@@ -40,6 +40,7 @@ urlpatterns = [
     path('delete_boulder/<int:boulder_id>', views.delete_boulder),
     path('query_gyms/', views.query_gyms),
     path('choose_gym/<int:user_id>/<int:gym_id>', views.choose_gym),
+    path('profile/<int:user_id>', views.profile),
     path('movies/<int:movie_id>', views.movie),
 ]
 
