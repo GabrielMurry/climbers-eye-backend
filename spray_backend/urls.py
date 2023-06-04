@@ -39,6 +39,7 @@ urlpatterns = [
     path('sent_boulder/<int:boulder_id>/<int:user_id>', views.sent_boulder),
     path('delete_boulder/<int:boulder_id>', views.delete_boulder),
     path('query_gyms/', views.query_gyms),
+    path('queried_gym_spraywall/<int:gym_id>', views.queried_gym_spraywall),
     path('choose_gym/<int:user_id>/<int:gym_id>', views.choose_gym),
     path('profile/<int:user_id>', views.profile),
     path('movies/<int:movie_id>', views.movie),

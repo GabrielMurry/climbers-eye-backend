@@ -54,7 +54,10 @@ def login_user(request):
             login(request, user)
             csrf_token = get_token(request)
             person = Person.objects.get(username=username)
-            data = {'userID': person.id, 'gymID': person.gym_id}
+            image_uri = 'data:image/png;base64,' + person.spraywall.spraywall_image_data
+            image_width = person.spraywall.spraywall_image_width
+            image_height = person.spraywall.spraywall_image_height
+            data = {'userID': person.id, 'gymID': person.gym_id, 'gymName': person.gym.name, 'spraywallName': person.spraywall.name, 'spraywallID': person.spraywall.id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height}
             return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
@@ -96,8 +99,9 @@ def add_gym(request, user_id):
                 person_serializer = PersonSerializer(instance=person, data=person_data, partial=True) # partial=True allows for partial updates
                 if person_serializer.is_valid():
                     person_serializer.save()
+                    data = {'spraywallID': spraywall_id}
                     csrf_token = get_token(request)
-                    return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+                    return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
                 else:
                     print(person_serializer.errors)
             else:
@@ -325,10 +329,23 @@ def query_gyms(request):
             })
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def queried_gym_spraywall(request, gym_id):
+    if request.method == 'GET':
+        spraywall = SprayWall.objects.get(gym=gym_id)
+        data = {
+            'imageUri': "data:image/png;base64," + spraywall.spraywall_image_data,
+            'imageWidth': spraywall.spraywall_image_width,
+            'imageHeight': spraywall.spraywall_image_height,
+        }
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['PUT'])
 def choose_gym(request, user_id, gym_id):
     if request.method == 'PUT':
+        print(user_id, gym_id)
         # updating person's default gym and spraywall id to user's chosen gym
         spraywall = SprayWall.objects.get(gym=gym_id)
         person_data = {
