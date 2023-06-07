@@ -32,7 +32,7 @@ class Person(models.Model):
 
 class Boulder(models.Model):
     name = models.CharField(max_length=50)
-    description = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
     matching = models.BooleanField(default=True)
     publish = models.BooleanField(default=True)
     grade = models.CharField(max_length=10, blank=True, null=True)
@@ -47,6 +47,16 @@ class Boulder(models.Model):
     spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE, blank=True, null=True)
     setter_person = models.ForeignKey(Person, on_delete=models.CASCADE, blank=True, null=True, related_name='setter_person')
     first_ascent_person = models.ForeignKey(Person, on_delete=models.CASCADE, blank=True, null=True, related_name='first_ascent_person')
+
+class Circuit(models.Model):
+    name = models.CharField(max_length=50)
+    description = models.TextField(blank=True, null=True)
+    color = models.CharField(max_length=20, blank=True, null=True)
+    private = models.BooleanField(default=False)
+    boulders = models.ManyToManyField(Boulder, related_name='circuits')
+    # foreign keys
+    person = models.ForeignKey(Person, on_delete=models.CASCADE) # who this circuit belongs to
+    spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE, blank=True, null=True) # which spraywall the circuit belongs to 
 
 class Like(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)

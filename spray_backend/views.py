@@ -3,12 +3,12 @@ from django.shortcuts import render
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
-from .models import Gym, SprayWall, Person, Boulder, Like, Send
+from .models import Gym, SprayWall, Person, Boulder, Like, Send, Circuit
 from spray_backend.models import Movie
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
-from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer
+from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer, CircuitSerializer
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
 from django.middleware.csrf import get_token
 from django.db.models import Q
@@ -24,7 +24,6 @@ def movie(request, movie_id):
 def csrf_token_view(request):
     if request.method == 'GET':
         csrf_token = get_token(request)
-        print(csrf_token)
         return Response({'csrfToken': csrf_token})
     
 @api_view(['POST'])
@@ -99,9 +98,8 @@ def add_gym(request, user_id):
                 person_serializer = PersonSerializer(instance=person, data=person_data, partial=True) # partial=True allows for partial updates
                 if person_serializer.is_valid():
                     person_serializer.save()
-                    data = {'spraywallID': spraywall_id}
                     csrf_token = get_token(request)
-                    return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+                    return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
                 else:
                     print(person_serializer.errors)
             else:
@@ -333,6 +331,7 @@ def query_gyms(request):
 @api_view(['GET'])
 def queried_gym_spraywall(request, gym_id):
     if request.method == 'GET':
+        # get gym's spraywall image, width, and height to display on bottom sheet in map screen when user clicks on gym card
         spraywall = SprayWall.objects.get(gym=gym_id)
         data = {
             'imageUri': "data:image/png;base64," + spraywall.spraywall_image_data,
@@ -345,7 +344,6 @@ def queried_gym_spraywall(request, gym_id):
 @api_view(['PUT'])
 def choose_gym(request, user_id, gym_id):
     if request.method == 'PUT':
-        print(user_id, gym_id)
         # updating person's default gym and spraywall id to user's chosen gym
         spraywall = SprayWall.objects.get(gym=gym_id)
         person_data = {
@@ -388,3 +386,45 @@ def profile(request, user_id):
         }
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+
+@api_view(['GET', 'POST'])
+def circuit(request, user_id, spraywall_id):
+    if request.method == 'GET':
+        # get all circuits associated to that particular user and spraywall
+        circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+        data = []
+        for circuit in circuits:
+            data.append({
+                'id': circuit.id,
+                'name': circuit.name,
+                'description': circuit.description,
+                'color': circuit.color,
+                'private': circuit.private
+            })
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+    if request.method == 'POST':
+        # adding a new circuit (brand new circuits don't initially contain any boulders)
+        circuit_serializer = CircuitSerializer(data=request.data, partial=True)
+        if circuit_serializer.is_valid():
+            circuit = circuit_serializer.save()
+            data = {
+                'id': circuit.id,
+                'name': circuit.name,
+                'description': circuit.description,
+                'color': circuit.color,
+                'private': circuit.private
+            }
+            csrf_token = get_token(request)
+            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(circuit_serializer.errors)
+
+@api_view(['DELETE'])
+def delete_circuit(request, user_id, spraywall_id, circuit_id):
+    if request.method == 'DELETE':
+        # deleting a user's particular circuit in a particular spraywall
+        circuit_row = Circuit.objects.get(id=circuit_id, person=user_id, spraywall=spraywall_id)
+        circuit_row.delete()
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)

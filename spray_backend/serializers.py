@@ -1,4 +1,4 @@
-from .models import Gym, SprayWall, Boulder, Person, Send, Like
+from .models import Gym, SprayWall, Boulder, Person, Send, Like, Circuit
 from rest_framework import serializers
 
 class LikeSerializer(serializers.ModelSerializer):
@@ -9,6 +9,13 @@ class LikeSerializer(serializers.ModelSerializer):
 class SendSerializer(serializers.ModelSerializer):
     class Meta:
         model = Send
+        fields = '__all__'
+
+class CircuitSerializer(serializers.ModelSerializer):
+    boulders = serializers.PrimaryKeyRelatedField(many=True, queryset=Boulder.objects.all())
+
+    class Meta:
+        model = Circuit
         fields = '__all__'
 
 class PersonSerializer(serializers.ModelSerializer):

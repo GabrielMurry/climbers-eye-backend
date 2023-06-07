@@ -42,6 +42,8 @@ urlpatterns = [
     path('queried_gym_spraywall/<int:gym_id>', views.queried_gym_spraywall),
     path('choose_gym/<int:user_id>/<int:gym_id>', views.choose_gym),
     path('profile/<int:user_id>', views.profile),
+    path('circuit/<int:user_id>/<int:spraywall_id>', views.circuit),
+    path('delete_circuit/<int:user_id>/<int:spraywall_id>/<int:circuit_id>', views.delete_circuit),
     path('movies/<int:movie_id>', views.movie),
 ]
 
