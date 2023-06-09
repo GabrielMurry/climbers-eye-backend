@@ -1,5 +1,10 @@
-from .models import Gym, SprayWall, Boulder, Person, Send, Like, Circuit
+from .models import Gym, SprayWall, Boulder, Person, Send, Like, Circuit, Bookmark
 from rest_framework import serializers
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bookmark
+        fields = '__all__'
 
 class LikeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,8 +24,9 @@ class CircuitSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class PersonSerializer(serializers.ModelSerializer):
-    # A person can have many likes and sends
+    # A person can have many likes, bookmarks, and sends
     likes = LikeSerializer(many=True, read_only=True)
+    bookmarks = BookmarkSerializer(many=True, read_only=True)
     sends = SendSerializer(many=True, read_only=True)
 
     class Meta:

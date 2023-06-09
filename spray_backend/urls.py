@@ -36,14 +36,17 @@ urlpatterns = [
     path('add_boulder/<int:user_id>', views.add_boulder),
     path('boulder_image/<int:boulder_id>', views.boulder_image),
     path('like_boulder/<int:boulder_id>/<int:user_id>', views.like_boulder),
+    path('bookmark_boulder/<int:boulder_id>/<int:user_id>', views.bookmark_boulder),
     path('sent_boulder/<int:boulder_id>/<int:user_id>', views.sent_boulder),
     path('delete_boulder/<int:boulder_id>', views.delete_boulder),
     path('query_gyms/', views.query_gyms),
     path('queried_gym_spraywall/<int:gym_id>', views.queried_gym_spraywall),
     path('choose_gym/<int:user_id>/<int:gym_id>', views.choose_gym),
     path('profile/<int:user_id>', views.profile),
-    path('circuit/<int:user_id>/<int:spraywall_id>', views.circuit),
+    path('circuits/<int:user_id>/<int:spraywall_id>/<int:boulder_id>', views.circuits),
     path('delete_circuit/<int:user_id>/<int:spraywall_id>/<int:circuit_id>', views.delete_circuit),
+    path('add_or_remove_boulder_in_circuit/<int:circuit_id>/<int:boulder_id>', views.add_or_remove_boulder_in_circuit),
+    path('get_boulders_from_circuit/<int:user_id>/<int:circuit_id>', views.get_boulders_from_circuit),
     path('movies/<int:movie_id>', views.movie),
 ]
 

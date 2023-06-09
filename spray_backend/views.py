@@ -3,12 +3,12 @@ from django.shortcuts import render
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import authenticate, login, logout
 from .forms import CreateUserForm
-from .models import Gym, SprayWall, Person, Boulder, Like, Send, Circuit
+from .models import Gym, SprayWall, Person, Boulder, Like, Send, Circuit, Bookmark
 from spray_backend.models import Movie
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
-from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer, CircuitSerializer
+from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer, CircuitSerializer, BookmarkSerializer
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
 from django.middleware.csrf import get_token
 from django.db.models import Q
@@ -172,10 +172,22 @@ def list(request, spraywall_id, user_id):
             liked_boulder = False
             if liked_row.exists():
                 liked_boulder = True
+            bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
+            bookmarked_boulder = False
+            if bookmarked_row.exists():
+                bookmarked_boulder = True
             sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
             sent_boulder = False
             if sent_row.exists():
                 sent_boulder = True
+            # if particular boulder is in at least one of user's circuit in this particular spraywall
+            circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+            in_circuit = False
+            for circuit in circuits:
+                boulder_is_in_circuit = circuit.boulders.filter(pk=boulder.id)
+                if boulder_is_in_circuit.exists():
+                    in_circuit = True
+                    break
             data.append({
                 'id': boulder.id, 
                 'name': boulder.name, 
@@ -188,8 +200,10 @@ def list(request, spraywall_id, user_id):
                 'grade': boulder.grade, 
                 'quality': boulder.quality, 
                 'likes': boulder.likes_count,
-                'personLiked': liked_boulder,
-                'sentBoulder': sent_boulder
+                'isLiked': liked_boulder,
+                'isBookmarked': bookmarked_boulder,
+                'isSent': sent_boulder,
+                'inCircuit': in_circuit
             })
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
@@ -208,10 +222,22 @@ def query_list(request, spraywall_id, user_id):
             liked_boulder = False
             if liked_row.exists():
                 liked_boulder = True
+            bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
+            bookmarked_boulder = False
+            if bookmarked_row.exists():
+                bookmarked_boulder = True
             sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
             sent_boulder = False
             if sent_row.exists():
                 sent_boulder = True
+            # if particular boulder is in at least one of user's circuit in this particular spraywall
+            circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+            in_circuit = False
+            for circuit in circuits:
+                boulder_is_in_circuit = circuit.boulders.filter(pk=boulder.id)
+                if boulder_is_in_circuit.exists():
+                    in_circuit = True
+                    break
             data.append({
                 'id': boulder.id, 
                 'name': boulder.name, 
@@ -224,8 +250,10 @@ def query_list(request, spraywall_id, user_id):
                 'grade': boulder.grade, 
                 'quality': boulder.quality, 
                 'likes': boulder.likes_count,
-                'personLiked': liked_boulder,
-                'sentBoulder': sent_boulder
+                'isLiked': liked_boulder,
+                'isBookmarked': bookmarked_boulder,
+                'isSent': sent_boulder,
+                'inCircuit': in_circuit
             })
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
@@ -250,18 +278,37 @@ def boulder_image(request, boulder_id):
 def like_boulder(request, boulder_id, user_id):
     if request.method == 'POST':
         data = { 'person': user_id, 'boulder': boulder_id }
-        serializer = LikeSerializer(data=data)
-        if serializer.is_valid():
-            serializer.save()
-            data = {'personLiked': True}
+        like_serializer = LikeSerializer(data=data)
+        if like_serializer.is_valid():
+            like_serializer.save()
+            data = {'isLiked': True}
             csrf_token = get_token(request)
             return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         else:
-            print(serializer.errors)
+            print(like_serializer.errors)
     if request.method == 'DELETE':
         liked_row = Like.objects.filter(person=user_id, boulder=boulder_id)
         liked_row.delete()
-        data = {'personLiked': False}
+        data = {'isLiked': False}
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+    
+@api_view(['POST', 'DELETE'])
+def bookmark_boulder(request, boulder_id, user_id):
+    if request.method == 'POST':
+        data = { 'person': user_id, 'boulder': boulder_id }
+        bookmark_serializer = BookmarkSerializer(data=data)
+        if bookmark_serializer.is_valid():
+            bookmark_serializer.save()
+            data = {'isBookmarked': True}
+            csrf_token = get_token(request)
+            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(bookmark_serializer.errors)
+    if request.method == 'DELETE':
+        bookmark_row = Bookmark.objects.filter(person=user_id, boulder=boulder_id)
+        bookmark_row.delete()
+        data = {'isBookmarked': False}
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
     
@@ -298,7 +345,7 @@ def sent_boulder(request, boulder_id, user_id):
             'grade': boulder.grade,
             'quality': boulder.quality,
             'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
-            'sentBoulder': sent_boulder
+            'isSent': sent_boulder
         }
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
@@ -388,18 +435,20 @@ def profile(request, user_id):
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
 
 @api_view(['GET', 'POST'])
-def circuit(request, user_id, spraywall_id):
+def circuits(request, user_id, spraywall_id, boulder_id):
     if request.method == 'GET':
         # get all circuits associated to that particular user and spraywall
         circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
         data = []
         for circuit in circuits:
+            boulder_is_in_circuit = circuit.boulders.filter(pk=boulder_id).exists()
             data.append({
                 'id': circuit.id,
                 'name': circuit.name,
                 'description': circuit.description,
                 'color': circuit.color,
-                'private': circuit.private
+                'private': circuit.private,
+                'isSelected': boulder_is_in_circuit
             })
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
@@ -428,3 +477,58 @@ def delete_circuit(request, user_id, spraywall_id, circuit_id):
         circuit_row.delete()
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+    
+@api_view(['POST', 'DELETE'])
+def add_or_remove_boulder_in_circuit(request, circuit_id, boulder_id):
+    # get particular circuit and boulder instance
+    circuit = Circuit.objects.get(pk=circuit_id)
+    boulder = Boulder.objects.get(pk=boulder_id)
+    if request.method == 'POST':
+        # add new boulder to circuit's boulder list
+        circuit.boulders.add(boulder)
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+    if request.method == 'DELETE':
+        # remove particular boulder from circuit's boulder list
+        circuit.boulders.remove(boulder)
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+def get_boulders_from_circuit(request, user_id, circuit_id):
+    if request.method == 'GET':
+        # Retrieving boulders for a circuit
+        circuit = Circuit.objects.get(pk=circuit_id)
+        boulders = circuit.boulders.all()
+        data = []
+        for boulder in boulders:
+            liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
+            liked_boulder = False
+            if liked_row.exists():
+                liked_boulder = True
+            bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
+            bookmarked_boulder = False
+            if bookmarked_row.exists():
+                bookmarked_boulder = True
+            sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
+            sent_boulder = False
+            if sent_row.exists():
+                sent_boulder = True
+            data.append({
+                'id': boulder.id, 
+                'name': boulder.name, 
+                'description': boulder.description, 
+                'matching': boulder.matching, 
+                'publish': boulder.publish, 
+                'setter': boulder.setter_person.username, 
+                'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
+                'sends': boulder.sends_count, 
+                'grade': boulder.grade, 
+                'quality': boulder.quality, 
+                'likes': boulder.likes_count,
+                'isLiked': liked_boulder,
+                'isBookmarked': bookmarked_boulder,
+                'isSent': sent_boulder
+            })
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
