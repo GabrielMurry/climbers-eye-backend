@@ -47,6 +47,7 @@ urlpatterns = [
     path('delete_circuit/<int:user_id>/<int:spraywall_id>/<int:circuit_id>', views.delete_circuit),
     path('add_or_remove_boulder_in_circuit/<int:circuit_id>/<int:boulder_id>', views.add_or_remove_boulder_in_circuit),
     path('get_boulders_from_circuit/<int:user_id>/<int:circuit_id>', views.get_boulders_from_circuit),
+    path('boulder_stats/<int:boulder_id>', views.boulder_stats),
     path('movies/<int:movie_id>', views.movie),
 ]
 

@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view
 from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer, CircuitSerializer, BookmarkSerializer
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
 from django.middleware.csrf import get_token
-from django.db.models import Q
+from django.db.models import Q, Count
 
 def movie(request, movie_id):
     movie = Movie.objects.get(pk=movie_id)
@@ -53,10 +53,14 @@ def login_user(request):
             login(request, user)
             csrf_token = get_token(request)
             person = Person.objects.get(username=username)
-            image_uri = 'data:image/png;base64,' + person.spraywall.spraywall_image_data
-            image_width = person.spraywall.spraywall_image_width
-            image_height = person.spraywall.spraywall_image_height
-            data = {'userID': person.id, 'gymID': person.gym_id, 'gymName': person.gym.name, 'spraywallName': person.spraywall.name, 'spraywallID': person.spraywall.id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height}
+            data = {}
+            if person.gym_id and person.spraywall.id:
+                image_uri = 'data:image/png;base64,' + person.spraywall.spraywall_image_data
+                image_width = person.spraywall.spraywall_image_width
+                image_height = person.spraywall.spraywall_image_height
+                data = {'userID': person.id, 'gymID': person.gym_id, 'gymName': person.gym.name, 'spraywallName': person.spraywall.name, 'spraywallID': person.spraywall.id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height}
+            else:
+                data = {'userID': person.id}
             return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
@@ -530,5 +534,72 @@ def get_boulders_from_circuit(request, user_id, circuit_id):
                 'isBookmarked': bookmarked_boulder,
                 'isSent': sent_boulder
             })
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+def boulder_stats(request, boulder_id):
+    if request.method == 'GET':
+        # get all people who have sent the boulder
+        # get each person's suggested grade
+        # get the name of boulder, setter of boulder, first ascenter, and number of sends
+        boulders_bar_chart_data = [
+            {'x': '4a/V0', 'y': 0},
+            {'x': '4b/V0', 'y': 0},
+            {'x': '4c/V0', 'y': 0},
+            {'x': '5a/V1', 'y': 0},
+            {'x': '5b/V1', 'y': 0},
+            {'x': '5c/V2', 'y': 0},
+            {'x': '6a/V3', 'y': 0},
+            {'x': '6a+/V3', 'y': 0},
+            {'x': '6b/V4', 'y': 0},
+            {'x': '6b+/V4', 'y': 0},
+            {'x': '6c/V5', 'y': 0},
+            {'x': '6c+/V5', 'y': 0},
+            {'x': '7a/V6', 'y': 0},
+            {'x': '7a+/V7', 'y': 0},
+            {'x': '7b/V8', 'y': 0},
+            {'x': '7b+/V8', 'y': 0},
+            {'x': '7c/V9', 'y': 0},
+            {'x': '7c+/V10', 'y': 0},
+            {'x': '8a/V11', 'y': 0},
+            {'x': '8a+/V12', 'y': 0},
+            {'x': '8b/V13', 'y': 0},
+            {'x': '8b+/V14', 'y': 0},
+            {'x': '8c/V15', 'y': 0},
+            {'x': '8c+/V16', 'y': 0},
+        ]
+        colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe']   
+        grade_counts = (
+            Send.objects
+            .filter(boulder=boulder_id)
+            .values('grade')
+            .annotate(count=Count('grade'))
+            .order_by('grade')
+        )
+        is_project = True
+        for item in grade_counts:
+            for boulder in boulders_bar_chart_data:
+                if boulder['x'] == item['grade']:
+                    boulder['y'] = item['count']
+                    is_project = False
+                    break
+        # result = [{'grade': item['grade'], 'count': item['count']} for item in grade_counts]
+        boulders_pie_chart_data = None
+        if not is_project:
+            totalGradersPie = sum(boulder['y'] for boulder in boulders_bar_chart_data)
+            bouldersWithPercentagePie = [
+                {**boulder, 'percentage': (boulder['y'] / totalGradersPie) * 100}
+                for boulder in boulders_bar_chart_data if boulder['y'] > 0
+            ]
+            boulders_pie_chart_data = sorted(bouldersWithPercentagePie, key=lambda x: x['percentage'], reverse=True)
+            # for pie data, I need to change properties 'x' to 'label' and 'y' to 'value', keep percentage
+            boulders_pie_chart_data = [{'label': obj['x'], 'value': obj['y'], 'percentage': obj['percentage'], 'color': colors[idx]} for idx, obj in enumerate(boulders_pie_chart_data)]
+            print(boulders_pie_chart_data)
+        data = {
+            'bouldersBarChartData': boulders_bar_chart_data,
+            'bouldersPieChartData': boulders_pie_chart_data,
+            'isProject': is_project
+        }
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
