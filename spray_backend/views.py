@@ -12,6 +12,7 @@ from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, 
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
 from django.middleware.csrf import get_token
 from django.db.models import Q, Count
+from utils.constants import boulders_bar_chart_data, colors
 
 def movie(request, movie_id):
     movie = Movie.objects.get(pk=movie_id)
@@ -543,33 +544,6 @@ def boulder_stats(request, boulder_id):
         # get all people who have sent the boulder
         # get each person's suggested grade
         # get the name of boulder, setter of boulder, first ascenter, and number of sends
-        boulders_bar_chart_data = [
-            {'x': '4a/V0', 'y': 0},
-            {'x': '4b/V0', 'y': 0},
-            {'x': '4c/V0', 'y': 0},
-            {'x': '5a/V1', 'y': 0},
-            {'x': '5b/V1', 'y': 0},
-            {'x': '5c/V2', 'y': 0},
-            {'x': '6a/V3', 'y': 0},
-            {'x': '6a+/V3', 'y': 0},
-            {'x': '6b/V4', 'y': 0},
-            {'x': '6b+/V4', 'y': 0},
-            {'x': '6c/V5', 'y': 0},
-            {'x': '6c+/V5', 'y': 0},
-            {'x': '7a/V6', 'y': 0},
-            {'x': '7a+/V7', 'y': 0},
-            {'x': '7b/V8', 'y': 0},
-            {'x': '7b+/V8', 'y': 0},
-            {'x': '7c/V9', 'y': 0},
-            {'x': '7c+/V10', 'y': 0},
-            {'x': '8a/V11', 'y': 0},
-            {'x': '8a+/V12', 'y': 0},
-            {'x': '8b/V13', 'y': 0},
-            {'x': '8b+/V14', 'y': 0},
-            {'x': '8c/V15', 'y': 0},
-            {'x': '8c+/V16', 'y': 0},
-        ]
-        colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe']   
         grade_counts = (
             Send.objects
             .filter(boulder=boulder_id)
@@ -601,5 +575,22 @@ def boulder_stats(request, boulder_id):
             'bouldersPieChartData': boulders_pie_chart_data,
             'isProject': is_project
         }
+        csrf_token = get_token(request)
+        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+def filter_circuits(request, user_id, spraywall_id):
+    if request.method == 'GET':
+        # get all circuits associated to that particular user and spraywall
+        circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+        data = []
+        for circuit in circuits:
+            data.append({
+                'id': circuit.id,
+                'name': circuit.name,
+                'description': circuit.description,
+                'color': circuit.color,
+                'private': circuit.private,
+            })
         csrf_token = get_token(request)
         return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
