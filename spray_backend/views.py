@@ -10,9 +10,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from .serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer, CircuitSerializer, BookmarkSerializer
 from .helperFunctions.composite import base64_string_to_image, increase_drawing_opacity, mask_drawing, combine_images, image_to_base64_string
+from .helperFunctions.list import get_filter_queries, filter_by_search_query, filter_by_circuits, filter_by_sort_by, filter_by_status, filter_by_grades, get_boulder_data
 from django.middleware.csrf import get_token
 from django.db.models import Q, Count
-from utils.constants import boulders_bar_chart_data, colors
+from utils.constants import boulder_grades, boulders_bar_chart_data, colors
 
 def movie(request, movie_id):
     movie = Movie.objects.get(pk=movie_id)
@@ -24,8 +25,7 @@ def movie(request, movie_id):
 @api_view(['GET'])
 def csrf_token_view(request):
     if request.method == 'GET':
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token})
+        return Response({'csrfToken': get_token(request)})
     
 @api_view(['POST'])
 def signup_user(request):
@@ -36,9 +36,8 @@ def signup_user(request):
             person_serializer = PersonSerializer(data=request.data)
             if person_serializer.is_valid():
                 person_instance = person_serializer.save()
-                csrf_token = get_token(request)
                 username = request.data.get('username')
-                return Response({'csrfToken': csrf_token, 'userID': person_instance.id, 'username': username}, status=status.HTTP_200_OK)
+                return Response({'csrfToken': get_token(request), 'userID': person_instance.id, 'username': username}, status=status.HTTP_200_OK)
             else:
                 print(person_serializer.errors)
         else:
@@ -52,7 +51,6 @@ def login_user(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            csrf_token = get_token(request)
             person = Person.objects.get(username=username)
             data = {}
             if person.gym_id and person.spraywall.id:
@@ -62,7 +60,7 @@ def login_user(request):
                 data = {'userID': person.id, 'gymID': person.gym_id, 'gymName': person.gym.name, 'spraywallName': person.spraywall.name, 'spraywallID': person.spraywall.id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height}
             else:
                 data = {'userID': person.id}
-            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
 
@@ -103,8 +101,7 @@ def add_gym(request, user_id):
                 person_serializer = PersonSerializer(instance=person, data=person_data, partial=True) # partial=True allows for partial updates
                 if person_serializer.is_valid():
                     person_serializer.save()
-                    csrf_token = get_token(request)
-                    return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+                    return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
                 else:
                     print(person_serializer.errors)
             else:
@@ -123,8 +120,7 @@ def home(request, user_id):
         image_width = person.spraywall.spraywall_image_width
         image_height = person.spraywall.spraywall_image_height
         data = { 'gymName': gym_name, 'spraywallName': spraywall_name, 'spraywallID': spraywall_id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height }
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         
 @api_view(['GET', 'POST'])
 def spraywall(request):
@@ -162,111 +158,25 @@ def add_boulder(request, user_id):
                 'likes': boulder.likes_count,
                 'id': boulder.id
             }
-            csrf_token = get_token(request)
-            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         
-@api_view(['GET', 'POST'])
+@api_view(['GET'])
 def list(request, spraywall_id, user_id):
     if request.method == 'GET':
+        # get filter queries from attached to endpoint request
+        search_query, sort_by, min_grade_index, max_grade_index, circuits, climb_type, filter_status = get_filter_queries(request)
         # get all boulders on the specified spraywall
         boulders = Boulder.objects.filter(spraywall=spraywall_id)
+        # Filter
+        boulders = filter_by_search_query(boulders, search_query)
+        boulders = filter_by_circuits(boulders, circuits)
+        boulders = filter_by_sort_by(boulders, sort_by, user_id)
+        boulders = filter_by_status(boulders, filter_status, user_id)
+        boulders = filter_by_grades(boulders, min_grade_index, max_grade_index)
         # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
-        data = []
-        for boulder in boulders:
-            liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
-            liked_boulder = False
-            if liked_row.exists():
-                liked_boulder = True
-            bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
-            bookmarked_boulder = False
-            if bookmarked_row.exists():
-                bookmarked_boulder = True
-            sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
-            sent_boulder = False
-            if sent_row.exists():
-                sent_boulder = True
-            # if particular boulder is in at least one of user's circuit in this particular spraywall
-            circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
-            in_circuit = False
-            for circuit in circuits:
-                boulder_is_in_circuit = circuit.boulders.filter(pk=boulder.id)
-                if boulder_is_in_circuit.exists():
-                    in_circuit = True
-                    break
-            data.append({
-                'id': boulder.id, 
-                'name': boulder.name, 
-                'description': boulder.description, 
-                'matching': boulder.matching, 
-                'publish': boulder.publish, 
-                'setter': boulder.setter_person.username, 
-                'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
-                'sends': boulder.sends_count, 
-                'grade': boulder.grade, 
-                'quality': boulder.quality, 
-                'likes': boulder.likes_count,
-                'isLiked': liked_boulder,
-                'isBookmarked': bookmarked_boulder,
-                'isSent': sent_boulder,
-                'inCircuit': in_circuit
-            })
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        data = get_boulder_data(boulders, user_id, spraywall_id)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
-@api_view(['GET'])
-def query_list(request, spraywall_id, user_id):
-    if request.method == 'GET':
-        # Convert search query to lowercase
-        search_query = request.GET.get('search', '').lower()
-        # query boulders based on whatever matches name, grade, or setter username
-        boulders = Boulder.objects.filter(Q(name__icontains=search_query) | Q(grade__icontains=search_query) | Q(setter_person__username__icontains=search_query), spraywall=spraywall_id)
-         # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
-        data = []
-        for boulder in boulders:
-            liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
-            liked_boulder = False
-            if liked_row.exists():
-                liked_boulder = True
-            bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
-            bookmarked_boulder = False
-            if bookmarked_row.exists():
-                bookmarked_boulder = True
-            sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
-            sent_boulder = False
-            if sent_row.exists():
-                sent_boulder = True
-            # if particular boulder is in at least one of user's circuit in this particular spraywall
-            circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
-            in_circuit = False
-            for circuit in circuits:
-                boulder_is_in_circuit = circuit.boulders.filter(pk=boulder.id)
-                if boulder_is_in_circuit.exists():
-                    in_circuit = True
-                    break
-            data.append({
-                'id': boulder.id, 
-                'name': boulder.name, 
-                'description': boulder.description, 
-                'matching': boulder.matching, 
-                'publish': boulder.publish, 
-                'setter': boulder.setter_person.username, 
-                'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
-                'sends': boulder.sends_count, 
-                'grade': boulder.grade, 
-                'quality': boulder.quality, 
-                'likes': boulder.likes_count,
-                'isLiked': liked_boulder,
-                'isBookmarked': bookmarked_boulder,
-                'isSent': sent_boulder,
-                'inCircuit': in_circuit
-            })
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
-
-# @api_view(['GET'])
-# def filter_list(request, spraywall_id, user_id):
-
-    
 @api_view(['GET'])
 def boulder_image(request, boulder_id):
     if request.method == 'GET':
@@ -276,8 +186,7 @@ def boulder_image(request, boulder_id):
             'image_width': boulder.boulder_image_width,
             'image_height': boulder.boulder_image_height,
         }
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
 @api_view(['POST', 'DELETE'])
 def like_boulder(request, boulder_id, user_id):
@@ -287,16 +196,14 @@ def like_boulder(request, boulder_id, user_id):
         if like_serializer.is_valid():
             like_serializer.save()
             data = {'isLiked': True}
-            csrf_token = get_token(request)
-            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(like_serializer.errors)
     if request.method == 'DELETE':
         liked_row = Like.objects.filter(person=user_id, boulder=boulder_id)
         liked_row.delete()
         data = {'isLiked': False}
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['POST', 'DELETE'])
 def bookmark_boulder(request, boulder_id, user_id):
@@ -306,16 +213,14 @@ def bookmark_boulder(request, boulder_id, user_id):
         if bookmark_serializer.is_valid():
             bookmark_serializer.save()
             data = {'isBookmarked': True}
-            csrf_token = get_token(request)
-            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(bookmark_serializer.errors)
     if request.method == 'DELETE':
         bookmark_row = Bookmark.objects.filter(person=user_id, boulder=boulder_id)
         bookmark_row.delete()
         data = {'isBookmarked': False}
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['GET', 'POST'])
 def sent_boulder(request, boulder_id, user_id):
@@ -335,8 +240,7 @@ def sent_boulder(request, boulder_id, user_id):
                 person = Person.objects.get(id=request.data.get('person'))
                 boulder.first_ascent_person = person
             boulder.save()
-            csrf_token = get_token(request)
-            return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+            return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
         else:
             print(send_serializer.errors)
     if request.method == 'GET':
@@ -352,16 +256,14 @@ def sent_boulder(request, boulder_id, user_id):
             'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
             'isSent': sent_boulder
         }
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['DELETE'])
 def delete_boulder(request, boulder_id):
     if request.method == 'DELETE':
         boulder_row = Boulder.objects.get(id=boulder_id)
         boulder_row.delete()
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def query_gyms(request):
@@ -377,8 +279,7 @@ def query_gyms(request):
                 'name': gym.name, 
                 'location': gym.location,
             })
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def queried_gym_spraywall(request, gym_id):
@@ -390,8 +291,7 @@ def queried_gym_spraywall(request, gym_id):
             'imageWidth': spraywall.spraywall_image_width,
             'imageHeight': spraywall.spraywall_image_height,
         }
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['PUT'])
 def choose_gym(request, user_id, gym_id):
@@ -417,8 +317,7 @@ def choose_gym(request, user_id, gym_id):
                 'imageWidth': person_updated.spraywall.spraywall_image_width,
                 'imageHeight': person_updated.spraywall.spraywall_image_height,
             }
-            csrf_token = get_token(request)
-            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
 
@@ -436,8 +335,7 @@ def profile(request, user_id):
             'userCreatedBoulders': user_created_boulders_count,
             'likes': likes_count
         }
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
 @api_view(['GET', 'POST'])
 def circuits(request, user_id, spraywall_id, boulder_id):
@@ -455,8 +353,7 @@ def circuits(request, user_id, spraywall_id, boulder_id):
                 'private': circuit.private,
                 'isSelected': boulder_is_in_circuit
             })
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     if request.method == 'POST':
         # adding a new circuit (brand new circuits don't initially contain any boulders)
         circuit_serializer = CircuitSerializer(data=request.data, partial=True)
@@ -469,8 +366,7 @@ def circuits(request, user_id, spraywall_id, boulder_id):
                 'color': circuit.color,
                 'private': circuit.private
             }
-            csrf_token = get_token(request)
-            return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(circuit_serializer.errors)
 
@@ -480,8 +376,7 @@ def delete_circuit(request, user_id, spraywall_id, circuit_id):
         # deleting a user's particular circuit in a particular spraywall
         circuit_row = Circuit.objects.get(id=circuit_id, person=user_id, spraywall=spraywall_id)
         circuit_row.delete()
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
     
 @api_view(['POST', 'DELETE'])
 def add_or_remove_boulder_in_circuit(request, circuit_id, boulder_id):
@@ -491,13 +386,11 @@ def add_or_remove_boulder_in_circuit(request, circuit_id, boulder_id):
     if request.method == 'POST':
         # add new boulder to circuit's boulder list
         circuit.boulders.add(boulder)
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
     if request.method == 'DELETE':
         # remove particular boulder from circuit's boulder list
         circuit.boulders.remove(boulder)
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def get_boulders_from_circuit(request, user_id, circuit_id):
@@ -535,8 +428,7 @@ def get_boulders_from_circuit(request, user_id, circuit_id):
                 'isBookmarked': bookmarked_boulder,
                 'isSent': sent_boulder
             })
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def boulder_stats(request, boulder_id):
@@ -575,8 +467,7 @@ def boulder_stats(request, boulder_id):
             'bouldersPieChartData': boulders_pie_chart_data,
             'isProject': is_project
         }
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def filter_circuits(request, user_id, spraywall_id):
@@ -592,5 +483,4 @@ def filter_circuits(request, user_id, spraywall_id):
                 'color': circuit.color,
                 'private': circuit.private,
             })
-        csrf_token = get_token(request)
-        return Response({'csrfToken': csrf_token, 'data': data}, status=status.HTTP_200_OK)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
