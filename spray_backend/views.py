@@ -15,12 +15,18 @@ from django.middleware.csrf import get_token
 from django.db.models import Q, Count
 from utils.constants import boulder_grades, boulders_bar_chart_data, colors
 
-def movie(request, movie_id):
-    movie = Movie.objects.get(pk=movie_id)
-    if movie is not None:
-        return render(request, 'movies/movie.html', {'movie': movie})
-    else:
-        raise Http404('Movie does not exist')
+def get_spraywalls(gym_id):
+    spraywalls = SprayWall.objects.filter(gym__id=gym_id) # gym__id is used to specify the filter condition. It indicates that you want to filter the SprayWall objects based on the id of the related gym object.
+    spraywalls_array = []
+    for spraywall in spraywalls:
+        spraywalls_array.append({
+            'id': spraywall.id,
+            'name': spraywall.name,
+            'base64': "data:image/png;base64," + spraywall.spraywall_image_data,
+            'width': spraywall.spraywall_image_width,
+            'height': spraywall.spraywall_image_height,
+        })
+    return spraywalls_array
     
 @api_view(['GET'])
 def csrf_token_view(request):
@@ -37,7 +43,8 @@ def signup_user(request):
             if person_serializer.is_valid():
                 person_instance = person_serializer.save()
                 username = request.data.get('username')
-                return Response({'csrfToken': get_token(request), 'userID': person_instance.id, 'username': username}, status=status.HTTP_200_OK)
+                data = {'userID': person_instance.id, 'username': username}
+                return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
             else:
                 print(person_serializer.errors)
         else:
@@ -54,12 +61,11 @@ def login_user(request):
             person = Person.objects.get(username=username)
             data = {}
             if person.gym_id and person.spraywall.id:
-                image_uri = 'data:image/png;base64,' + person.spraywall.spraywall_image_data
-                image_width = person.spraywall.spraywall_image_width
-                image_height = person.spraywall.spraywall_image_height
-                data = {'userID': person.id, 'gymID': person.gym_id, 'gymName': person.gym.name, 'spraywallName': person.spraywall.name, 'spraywallID': person.spraywall.id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height}
+                gym_id = person.gym_id
+                spraywalls = get_spraywalls(gym_id)
+                data = {'userID': person.id, 'gymID': person.gym_id, 'gymName': person.gym.name, 'spraywalls': spraywalls, 'headshotImageUri': "data:image/png;base64," + person.headshot_image_data if person.headshot_image_data else None, 'headshotImageWidth': person.headshot_image_width, 'headshotImageHeight': person.headshot_image_height, 'bannerImageUri': "data:image/png;base64," + person.banner_image_data, 'bannerImageWidth': person.banner_image_width, 'bannerImageHeight': person.banner_image_height}
             else:
-                data = {'userID': person.id}
+                data = {'userID': person.id, 'headshotImageUri': "data:image/png;base64," + person.headshot_image_data, 'headshotImageWidth': person.headshot_image_width, 'headshotImageHeight': person.headshot_image_height, 'bannerImageUri': "data:image/png;base64," + person.banner_image_data if person.banner_image_data else None, 'bannerImageWidth': person.banner_image_width, 'bannerImageHeight': person.banner_image_height}
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
@@ -113,13 +119,11 @@ def add_gym(request, user_id):
 def home(request, user_id):
     if request.method == 'GET':
         person = Person.objects.get(id=user_id)
-        gym_name = person.gym.name
-        spraywall_name = person.spraywall.name
-        spraywall_id = person.spraywall.id
-        image_uri = 'data:image/png;base64,' + person.spraywall.spraywall_image_data
-        image_width = person.spraywall.spraywall_image_width
-        image_height = person.spraywall.spraywall_image_height
-        data = { 'gymName': gym_name, 'spraywallName': spraywall_name, 'spraywallID': spraywall_id, 'imageUri': image_uri, 'imageWidth': image_width, 'imageHeight': image_height }
+        gym_id = person.gym.id
+        spraywalls = get_spraywalls(gym_id)
+        data = {
+            'spraywalls': spraywalls[0]
+        }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         
 @api_view(['GET', 'POST'])
@@ -222,16 +226,14 @@ def bookmark_boulder(request, boulder_id, user_id):
         data = {'isBookmarked': False}
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
-@api_view(['GET', 'POST'])
-def sent_boulder(request, boulder_id, user_id):
+@api_view(['POST'])
+def sent_boulder(request, boulder_id):
     if request.method == 'POST':
         # post new row that details user's attempts, chosen difficulty, quality, and notes for a particular boulder
         # update new info for the actual Boulder --> ?
         send_serializer = SendSerializer(data=request.data)
         if send_serializer.is_valid():
             send_serializer.save()
-            # sends = Send.objects.filter(boulder=boulder_id)
-            # for send in sends:
             boulder = Boulder.objects.get(id=boulder_id)
             boulder.sends_count += 1
             boulder.grade = request.data.get('grade')
@@ -243,18 +245,40 @@ def sent_boulder(request, boulder_id, user_id):
             return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
         else:
             print(send_serializer.errors)
+    
+@api_view(['GET'])
+def updated_boulder_data(request, boulder_id, user_id):
     if request.method == 'GET':
         # get the updated data for the boulder on the Boulder Screen
         boulder = Boulder.objects.get(id=boulder_id)
+        # check if user sent the boulder
         sent_row = Send.objects.filter(person=user_id, boulder=boulder_id)
         sent_boulder = False
         if sent_row.exists():
             sent_boulder = True
+        # check if user liked the boulder
+        liked_row = Like.objects.filter(person=user_id, boulder=boulder_id)
+        liked_boulder = False
+        if liked_row.exists():
+            liked_boulder = True
+        # check if user bookmarked the boulder
+        bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder_id)
+        bookmarked_boulder = False
+        if bookmarked_row.exists():
+            bookmarked_boulder = True
+        # check if boulder is in a circuit
+        circuit = Circuit.objects.filter(person=user_id, boulders=boulder_id)
+        inCircuit = False
+        if circuit.exists():
+            inCircuit = True
         data = {
             'grade': boulder.grade,
             'quality': boulder.quality,
             'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
-            'isSent': sent_boulder
+            'isSent': sent_boulder,
+            'isLiked': liked_boulder,
+            'isBookmarked': bookmarked_boulder,
+            'inCircuit': inCircuit
         }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
@@ -322,18 +346,121 @@ def choose_gym(request, user_id, gym_id):
             print(person_serializer.errors)
 
 @api_view(['GET'])
-def profile(request, user_id):
+def profile(request, user_id, spraywall_id):
     if request.method == 'GET':
-        # get the total count of user's successful climbs
-        sends_count = Send.objects.filter(person=user_id).count()
-        # get the total count of user's created boulders
-        user_created_boulders_count = Boulder.objects.filter(setter_person=user_id).count()
-        # get the total count of user's 'liked' boulders
-        likes_count = Like.objects.filter(person=user_id).count()
+        section = request.GET.get('section', '').lower()
+        print(section)
+        if section == 'logbook':
+            boulders = Boulder.objects.filter(spraywall=spraywall_id)
+            # get the total count of user's successful climbs
+            sends_count = 0
+            flash_count = 0
+            top_grade = '4a/V0'
+            temp = []
+            for boulder in boulders:
+                send_row = Send.objects.filter(person=user_id, boulder=boulder.id)
+                if send_row.exists():
+                    send_obj = send_row.first()  # Access the first object in the queryset
+                    # flash_count
+                    if send_obj.attempts == 1:
+                        flash_count += 1
+                    # finding top grade (hardest climbed grade difficulty)
+                    grade_idx = boulder_grades[send_obj.grade]
+                    top_grade_idx = boulder_grades[top_grade]
+                    if grade_idx > top_grade_idx:
+                        top_grade = send_obj.grade
+                    sends_count += 1
+                    temp.append(boulder)
+            boulder_data = get_boulder_data(temp, user_id, spraywall_id)
+            other_data = {'sendsCount': sends_count, 'flashCount': flash_count, 'topGrade': top_grade}
+        elif section == 'creations':
+            # boulders in a particular spraywall and created by a particular user
+            boulders = Boulder.objects.filter(spraywall=spraywall_id, setter_person=user_id)
+            # established count --> a published boulder with at least 1 send. NOT a project. 
+            established_count = 0
+            projects_count = 0
+            total_sends_count = 0
+            for boulder in boulders:
+                if boulder.sends_count > 0:
+                    established_count += 1
+                else:
+                    projects_count += 1
+                total_sends_count += boulder.sends_count
+            boulder_data = get_boulder_data(boulders, user_id, spraywall_id)
+            other_data = {'establishedCount': established_count, 'projectsCount': projects_count, 'totalSendsCount': total_sends_count}
+        elif section == 'likes':
+            boulders = Boulder.objects.filter(spraywall=spraywall_id)
+            likes_count = 0
+            flash_count = 0
+            top_grade = '4a/V0'
+            temp = []
+            for boulder in boulders:
+                liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
+                if liked_row.exists():
+                    likes_count += 1
+                    send_row = Send.objects.filter(person=user_id, boulder=boulder.id)
+                    send_obj = send_row.first()  # Access the first object in the queryset
+                    # flash_count
+                    if send_obj.attempts == 1:
+                        flash_count += 1
+                    # finding top grade (hardest climbed grade difficulty)
+                    grade_idx = boulder_grades[send_obj.grade]
+                    top_grade_idx = boulder_grades[top_grade]
+                    if grade_idx > top_grade_idx:
+                        top_grade = send_obj.grade
+                    temp.append(boulder)
+            boulder_data = get_boulder_data(temp, user_id, spraywall_id)
+            other_data = {'likesCount': likes_count, 'flashCount': flash_count, 'topGrade': top_grade}
+        elif section == 'bookmarks':
+            boulders = Boulder.objects.filter(spraywall=spraywall_id)
+            bookmarks_count = 0
+            flash_count = 0
+            top_grade = '4a/V0'
+            temp = []
+            for boulder in boulders:
+                bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
+                if bookmarked_row.exists():
+                    bookmarks_count += 1
+                    send_row = Send.objects.filter(person=user_id, boulder=boulder.id)
+                    send_obj = send_row.first()  # Access the first object in the queryset
+                    # flash_count
+                    if send_obj.attempts == 1:
+                        flash_count += 1
+                    # finding top grade (hardest climbed grade difficulty)
+                    grade_idx = boulder_grades[send_obj.grade]
+                    top_grade_idx = boulder_grades[top_grade]
+                    if grade_idx > top_grade_idx:
+                        top_grade = send_obj.grade
+                    temp.append(boulder)
+            boulder_data = get_boulder_data(temp, user_id, spraywall_id)
+            other_data = {'bookmarksCount': bookmarks_count, 'flashCount': flash_count, 'topGrade': top_grade}
+        elif section == 'circuits':
+            circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+            circuit_boulders_count = 0
+            circuits_data = []
+            for circuit in circuits:
+                # retrieving all boulder data in particular circuit
+                boulders = circuit.boulders.all()
+                circuit_boulders_count += len(boulders)
+                boulder_data = get_boulder_data(boulders, user_id, spraywall_id)
+                # putting boulder data inside circuits data
+                circuits_data.append({
+                    'id': circuit.id,
+                    'name': circuit.name,
+                    'description': circuit.description,
+                    'color': circuit.color,
+                    'private': circuit.private,
+                    'boulderData': boulder_data,
+                })
+            other_data = {'circuitsCount': len(circuits), 'circuitBouldersCount': circuit_boulders_count}
+            data = {
+                'circuitsData': circuits_data,
+                'otherData': other_data,
+            }
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         data = {
-            'sends': sends_count,
-            'userCreatedBoulders': user_created_boulders_count,
-            'likes': likes_count
+            'boulderData': boulder_data,
+            'otherData': other_data,
         }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
@@ -355,6 +482,7 @@ def circuits(request, user_id, spraywall_id, boulder_id):
             })
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     if request.method == 'POST':
+        print('hi')
         # adding a new circuit (brand new circuits don't initially contain any boulders)
         circuit_serializer = CircuitSerializer(data=request.data, partial=True)
         if circuit_serializer.is_valid():
@@ -483,4 +611,48 @@ def filter_circuits(request, user_id, spraywall_id):
                 'color': circuit.color,
                 'private': circuit.private,
             })
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def add_profile_banner_image(request, user_id):
+    if request.method == 'POST':
+        person = Person.objects.get(id=user_id)
+        person_serializer = PersonSerializer(instance=person, data=request.data, partial=True)
+        if person_serializer.is_valid():
+            person_serializer.save()
+            return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
+        else:
+            print(person_serializer.errors)
+    
+@api_view(['POST'])
+def add_new_spraywall(request, gym_id):
+    if request.method == 'POST':
+        data = { 
+            'name': request.data.get('name'), 
+            'spraywall_image_data': request.data.get('spraywall_image_data'), 
+            'spraywall_image_width': request.data.get('spraywall_image_width'),
+            'spraywall_image_height': request.data.get('spraywall_image_height'),
+            'gym': gym_id,
+        }
+        spraywall_serializer = SprayWallSerializer(data=data)
+        if spraywall_serializer.is_valid():
+            spraywall_serializer.save()
+            spraywalls = get_spraywalls(gym_id)
+            data = {
+                'spraywalls': spraywalls
+            }
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(spraywall_serializer.errors)
+
+@api_view(['DELETE'])
+def delete_spraywall(request, spraywall_id):
+    if request.method == 'DELETE':
+        spraywall_row = SprayWall.objects.get(id=spraywall_id)
+        spraywall_row.delete()
+        gym_id = spraywall_row.gym_id
+        spraywalls = get_spraywalls(gym_id)
+        data = {
+            'spraywalls': spraywalls
+        }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)

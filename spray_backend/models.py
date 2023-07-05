@@ -22,9 +22,12 @@ class SprayWall(models.Model):
 class Person(models.Model):
     username = models.CharField(max_length=50)
     email = models.EmailField(max_length=50)
-    profile_image_data = models.TextField(blank=True)
-    profile_image_width = models.CharField(max_length=10, blank=True)
-    profile_image_height = models.CharField(max_length=10, blank=True)
+    headshot_image_data = models.TextField(blank=True)
+    headshot_image_width = models.CharField(max_length=10, blank=True)
+    headshot_image_height = models.CharField(max_length=10, blank=True)
+    banner_image_data = models.TextField(blank=True)
+    banner_image_width = models.CharField(max_length=10, default=1000, blank=True)
+    banner_image_height = models.CharField(max_length=10, default=1000, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     # foreign keys
     gym = models.ForeignKey(Gym, on_delete=models.CASCADE, blank=True, null=True)

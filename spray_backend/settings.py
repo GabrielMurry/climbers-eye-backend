@@ -31,7 +31,7 @@ SECRET_KEY = env('DJANGO_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.50.29', '127.0.0.1', '10.0.0.120']
+ALLOWED_HOSTS = ['192.168.50.29', '127.0.0.1', '10.0.0.120', '10.0.0.125', '10.0.0.121', '10.0.0.124', '10.0.0.127']
 CORS_ORIGIN_ALLOW_ALL = True # Change it in production and specify your own origins
 
 
