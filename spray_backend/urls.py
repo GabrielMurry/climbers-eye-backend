@@ -32,8 +32,7 @@ urlpatterns = [
     path('home/<int:user_id>', views.home),
     path('list/<int:spraywall_id>/<int:user_id>', views.list),
     path('spraywall/', views.spraywall),
-    path('add_boulder/<int:user_id>', views.add_boulder),
-    path('boulder_image/<int:boulder_id>', views.boulder_image),
+    path('add_boulder/<int:spraywall_id>/<int:user_id>', views.add_boulder),
     path('like_boulder/<int:boulder_id>/<int:user_id>', views.like_boulder),
     path('bookmark_boulder/<int:boulder_id>/<int:user_id>', views.bookmark_boulder),
     path('sent_boulder/<int:boulder_id>', views.sent_boulder),
@@ -50,10 +49,10 @@ urlpatterns = [
     path('boulder_stats/<int:boulder_id>', views.boulder_stats),
     path('filter_circuits/<int:user_id>/<int:spraywall_id>', views.filter_circuits),
     path('add_profile_banner_image/<int:user_id>', views.add_profile_banner_image),
-    # path('edit_gym_data/<int:gym_id>', views.edit_gym_data),
     path('add_new_spraywall/<int:gym_id>', views.add_new_spraywall),
     path('delete_spraywall/<int:spraywall_id>', views.delete_spraywall),
-    # path('profile_images/<int:user_id>', views.profile_images),
+    path('edit_gym/<int:gym_id>', views.edit_gym),
+    path('edit_spraywall/<int:spraywall_id>', views.edit_spraywall),
 ]
 
 # serve those static image files

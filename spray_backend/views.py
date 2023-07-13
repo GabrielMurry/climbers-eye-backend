@@ -14,6 +14,15 @@ from .helperFunctions.list import get_filter_queries, filter_by_search_query, fi
 from django.middleware.csrf import get_token
 from django.db.models import Q, Count
 from utils.constants import boulder_grades, boulders_bar_chart_data, colors
+from io import BytesIO
+import uuid
+from urllib.parse import urlparse
+from PIL import Image
+import base64
+import boto3
+from botocore.exceptions import NoCredentialsError
+s3 = boto3.client('s3', aws_access_key_id='AKIA24PWBGA5KVTRS7UR',
+                  aws_secret_access_key='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')
 
 def get_spraywalls(gym_id):
     spraywalls = SprayWall.objects.filter(gym__id=gym_id) # gym__id is used to specify the filter condition. It indicates that you want to filter the SprayWall objects based on the id of the related gym object.
@@ -22,11 +31,43 @@ def get_spraywalls(gym_id):
         spraywalls_array.append({
             'id': spraywall.id,
             'name': spraywall.name,
-            'base64': "data:image/png;base64," + spraywall.spraywall_image_data,
+            'url': spraywall.spraywall_image_url,
             'width': spraywall.spraywall_image_width,
             'height': spraywall.spraywall_image_height,
         })
     return spraywalls_array
+
+def s3_image_url(base64_image):
+    try:
+        # Decode the base64 image data
+        image_data = base64.b64decode(base64_image)
+        # Create a file-like object from the decoded image data
+        image_file = BytesIO(image_data)
+        # Generate a unique key or filename for the image in S3
+        s3_key = f"images/{str(uuid.uuid4())}.jpg"
+        # Upload the image data to your S3 bucket
+        # image_file, bucket name, unique key or filename for image in s3
+        s3.upload_fileobj(image_file, 'sprayimages', s3_key)
+        # Construct the S3 URL for the uploaded image
+        image_url = f"https://sprayimages.s3.amazonaws.com/{s3_key}"
+        return image_url
+    except NoCredentialsError:
+        # Handle the case where AWS credentials are missing or incorrect
+        # Log the error or provide an appropriate error message
+        error_message = "AWS credentials are missing or incorrect."
+        print(error_message)
+    except Exception as e:
+        # Handle any other exceptions that may occur during the upload process
+        # Log the error or provide an appropriate error message
+        error_message = str(e)
+        print(error_message)
+
+def delete_image_from_s3(image_url):
+    parsed_url = urlparse(image_url)
+    bucket_name = 'sprayimages'
+    s3_key = parsed_url.path.lstrip('/')
+    # Delete the object from the S3 bucket
+    s3.delete_object(Bucket=bucket_name, Key=s3_key)
     
 @api_view(['GET'])
 def csrf_token_view(request):
@@ -43,7 +84,13 @@ def signup_user(request):
             if person_serializer.is_valid():
                 person_instance = person_serializer.save()
                 username = request.data.get('username')
-                data = {'userID': person_instance.id, 'username': username}
+                user = {
+                    'id': person_instance.id,
+                    'name': username
+                }
+                data = {
+                    'user': user
+                }
                 return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
             else:
                 print(person_serializer.errors)
@@ -60,12 +107,40 @@ def login_user(request):
             login(request, user)
             person = Person.objects.get(username=username)
             data = {}
-            if person.gym_id and person.spraywall.id:
+            if person.gym_id:
                 gym_id = person.gym_id
                 spraywalls = get_spraywalls(gym_id)
-                data = {'userID': person.id, 'gymID': person.gym_id, 'gymName': person.gym.name, 'spraywalls': spraywalls, 'headshotImageUri': "data:image/png;base64," + person.headshot_image_data if person.headshot_image_data else None, 'headshotImageWidth': person.headshot_image_width, 'headshotImageHeight': person.headshot_image_height, 'bannerImageUri': "data:image/png;base64," + person.banner_image_data, 'bannerImageWidth': person.banner_image_width, 'bannerImageHeight': person.banner_image_height}
+                user = {
+                    'id': person.id,
+                    'name': username
+                }
+                gym = {
+                    'id': person.gym_id,
+                    'name': person.gym.name,
+                    'location': person.gym.location,
+                    'type': person.gym.type,
+                }
+                data = {
+                    'user': user, 
+                    'gym': gym,
+                    'spraywalls': spraywalls, 
+                    'headshotImageUri': "data:image/png;base64," + person.headshot_image_url if person.headshot_image_url else None, 
+                    'headshotImageWidth': person.headshot_image_width, 
+                    'headshotImageHeight': person.headshot_image_height, 
+                    'bannerImageUri': "data:image/png;base64," + person.banner_image_url if person.banner_image_url else None, 
+                    'bannerImageWidth': person.banner_image_width, 
+                    'bannerImageHeight': person.banner_image_height
+                }
             else:
-                data = {'userID': person.id, 'headshotImageUri': "data:image/png;base64," + person.headshot_image_data, 'headshotImageWidth': person.headshot_image_width, 'headshotImageHeight': person.headshot_image_height, 'bannerImageUri': "data:image/png;base64," + person.banner_image_data if person.banner_image_data else None, 'bannerImageWidth': person.banner_image_width, 'bannerImageHeight': person.banner_image_height}
+                data = {
+                    'userID': person.id, 
+                    'headshotImageUri': "data:image/png;base64," + person.headshot_image_data, 
+                    'headshotImageWidth': person.headshot_image_width, 
+                    'headshotImageHeight': person.headshot_image_height, 
+                    'bannerImageUri': "data:image/png;base64," + person.banner_image_data if person.banner_image_data else None, 
+                    'bannerImageWidth': person.banner_image_width, 
+                    'bannerImageHeight': person.banner_image_height
+                }
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             return Response('Username or password is incorrect')
@@ -84,25 +159,38 @@ def composite(request):
     data_uri = 'data:image/png;base64,' + image_to_base64_string(result)
     return Response(data_uri)
 
+
 @api_view(['POST'])
 def add_gym(request, user_id):
     if request.method == 'POST':
         # Add Gym
-        gym_serializer = GymSerializer(data=request.data.get('gym'))
+        gym = request.data.get('gym')
+        gym_data = {
+            'name': gym['name'],
+            'location': gym['location'],
+            'type': gym['type'],
+        }
+        gym_serializer = GymSerializer(data=gym_data)
         if gym_serializer.is_valid():
-            gym_instance = gym_serializer.save() # Save the gym instance and get the saved object
-            gym_id = gym_instance.id  # Access the ID of the recently created gym
-            request.data['spraywall']['gym'] = gym_id # Insert recently created gym_id as a reference for spraywall's gym foreign key
+            gym_instance = gym_serializer.save() # Save the gym instance and get the saved object --> need the recently created gym's ID!
             # Add Spray Wall
-            spraywall_serializer = SprayWallSerializer(data=request.data.get('spraywall'))
+            spraywall = request.data.get('spraywall')
+            image_url = s3_image_url(spraywall['image_data'])
+            spraywall_data = {
+                'name': spraywall['name'],
+                'spraywall_image_url': image_url,
+                'spraywall_image_width': spraywall['image_width'],
+                'spraywall_image_height': spraywall['image_height'],
+                'gym': gym_instance.id,
+            }
+            spraywall_serializer = SprayWallSerializer(data=spraywall_data)
             if spraywall_serializer.is_valid():
                 spraywall_instance = spraywall_serializer.save()
-                spraywall_id = spraywall_instance.id
                 # Update Person data: person's gym_id foreign key and spraywall_id foreign key --> signifies person's default Gym and Wall
                 person = Person.objects.get(id=user_id)
                 person_data = {
-                    'gym': gym_id,
-                    'spraywall': spraywall_id
+                    'gym': gym_instance.id,
+                    'spraywall': spraywall_instance.id
                 }
                 person_serializer = PersonSerializer(instance=person, data=person_data, partial=True) # partial=True allows for partial updates
                 if person_serializer.is_valid():
@@ -140,20 +228,34 @@ def spraywall(request):
         return Response(serializer.data)
 
 @api_view(['POST'])
-def add_boulder(request, user_id):
+def add_boulder(request, spraywall_id, user_id):
     if request.method == 'POST':
-        person = Person.objects.get(id=user_id)
-        request.data['spraywall'] = person.spraywall.id
-        request.data['setter_person'] = person.id
-        serializer = BoulderSerializer(data=request.data)
-        if serializer.is_valid():
-            boulder_instance = serializer.save()
+        boulder = request.data
+        image_url = s3_image_url(boulder['image_data'])
+        boulder_data = {
+            'name': boulder['name'],
+            'description': boulder['description'],
+            'matching': boulder['matching'],
+            'publish': boulder['publish'],
+            'boulder_image_url': image_url,
+            'boulder_image_width': boulder['image_width'],
+            'boulder_image_height': boulder['image_height'],
+            'spraywall': spraywall_id,
+            'setter_person': user_id,
+        }
+        # using the boulder data, we create a brand new Boulder row in Boulder table
+        boulder_serializer = BoulderSerializer(data=boulder_data)
+        if boulder_serializer.is_valid():
+            boulder_instance = boulder_serializer.save()
             boulder = Boulder.objects.get(id=boulder_instance.id)
             data = {
                 'name': boulder.name, 
                 'description': boulder.description, 
                 'matching': boulder.matching, 
                 'publish': boulder.publish,
+                'url': boulder.boulder_image_url,
+                'width': boulder.boulder_image_width,
+                'height': boulder.boulder_image_height,
                 'setter': boulder.setter_person.username,
                 'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None,
                 'sends': boulder.sends_count,
@@ -163,6 +265,8 @@ def add_boulder(request, user_id):
                 'id': boulder.id
             }
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(boulder_serializer.errors)
         
 @api_view(['GET'])
 def list(request, spraywall_id, user_id):
@@ -179,17 +283,6 @@ def list(request, spraywall_id, user_id):
         boulders = filter_by_grades(boulders, min_grade_index, max_grade_index)
         # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
         data = get_boulder_data(boulders, user_id, spraywall_id)
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
-
-@api_view(['GET'])
-def boulder_image(request, boulder_id):
-    if request.method == 'GET':
-        boulder = Boulder.objects.get(pk=boulder_id)
-        data = { 
-            'image_uri': "data:image/png;base64," + boulder.boulder_image_data,
-            'image_width': boulder.boulder_image_width,
-            'image_height': boulder.boulder_image_height,
-        }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
 @api_view(['POST', 'DELETE'])
@@ -309,23 +402,18 @@ def query_gyms(request):
 def queried_gym_spraywall(request, gym_id):
     if request.method == 'GET':
         # get gym's spraywall image, width, and height to display on bottom sheet in map screen when user clicks on gym card
-        spraywall = SprayWall.objects.get(gym=gym_id)
+        spraywalls = get_spraywalls(gym_id)
         data = {
-            'imageUri': "data:image/png;base64," + spraywall.spraywall_image_data,
-            'imageWidth': spraywall.spraywall_image_width,
-            'imageHeight': spraywall.spraywall_image_height,
+            'spraywalls': spraywalls
         }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['PUT'])
 def choose_gym(request, user_id, gym_id):
     if request.method == 'PUT':
-        # updating person's default gym and spraywall id to user's chosen gym
-        spraywall = SprayWall.objects.get(gym=gym_id)
+        # updating person's default gym 
         person_data = {
-            'id': user_id,
             'gym': gym_id,
-            'spraywall': spraywall.id
         }
         person = Person.objects.get(id=user_id)
         # update or add user's new default gym and spraywall
@@ -333,13 +421,16 @@ def choose_gym(request, user_id, gym_id):
         if person_serializer.is_valid():
             person_instance = person_serializer.save()
             person_updated = Person.objects.get(id=person_instance.id)
+            gym = {
+                'id': gym_id,
+                'name': person_updated.gym.name,
+                'location': person_updated.gym.location,
+                'type': person_updated.gym.type,
+            }
+            spraywalls = get_spraywalls(gym_id)
             data = {
-                'gymName': person_updated.gym.name,
-                'spraywallName': person_updated.spraywall.name,
-                'spraywallID': person_updated.spraywall.id,
-                'imageUri': "data:image/png;base64," + person_updated.spraywall.spraywall_image_data,
-                'imageWidth': person_updated.spraywall.spraywall_image_width,
-                'imageHeight': person_updated.spraywall.spraywall_image_height,
+                'gym': gym,
+                'spraywalls': spraywalls,
             }
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
@@ -482,7 +573,6 @@ def circuits(request, user_id, spraywall_id, boulder_id):
             })
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     if request.method == 'POST':
-        print('hi')
         # adding a new circuit (brand new circuits don't initially contain any boulders)
         circuit_serializer = CircuitSerializer(data=request.data, partial=True)
         if circuit_serializer.is_valid():
@@ -627,14 +717,17 @@ def add_profile_banner_image(request, user_id):
 @api_view(['POST'])
 def add_new_spraywall(request, gym_id):
     if request.method == 'POST':
-        data = { 
-            'name': request.data.get('name'), 
-            'spraywall_image_data': request.data.get('spraywall_image_data'), 
-            'spraywall_image_width': request.data.get('spraywall_image_width'),
-            'spraywall_image_height': request.data.get('spraywall_image_height'),
+        # Add New Spray Wall
+        spraywall = request.data
+        image_url = s3_image_url(spraywall['image_data'])
+        spraywall_data = {
+            'name': spraywall['name'],
+            'spraywall_image_url': image_url,
+            'spraywall_image_width': spraywall['image_width'],
+            'spraywall_image_height': spraywall['image_height'],
             'gym': gym_id,
         }
-        spraywall_serializer = SprayWallSerializer(data=data)
+        spraywall_serializer = SprayWallSerializer(data=spraywall_data)
         if spraywall_serializer.is_valid():
             spraywall_serializer.save()
             spraywalls = get_spraywalls(gym_id)
@@ -648,7 +741,11 @@ def add_new_spraywall(request, gym_id):
 @api_view(['DELETE'])
 def delete_spraywall(request, spraywall_id):
     if request.method == 'DELETE':
+        # grab spraywall row
         spraywall_row = SprayWall.objects.get(id=spraywall_id)
+        # delete spraywall image from amazon s3
+        delete_image_from_s3(spraywall_row.spraywall_image_url)
+        # delete spraywall row from postgresql 
         spraywall_row.delete()
         gym_id = spraywall_row.gym_id
         spraywalls = get_spraywalls(gym_id)
@@ -656,3 +753,39 @@ def delete_spraywall(request, spraywall_id):
             'spraywalls': spraywalls
         }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def edit_gym(request, gym_id):
+    if request.method == 'POST':
+        gym = Gym.objects.get(id=gym_id)
+        gym_serializer = GymSerializer(instance=gym, data=request.data, partial=True)
+        if gym_serializer.is_valid():
+            gym_instance = gym_serializer.save() # Save the gym instance and get the saved object
+            gym = {
+                'id': gym_instance.id,
+                'name': gym_instance.name,
+                'location': gym_instance.location,
+                'type': gym_instance.type,
+            }
+            data = {
+                'gym': gym
+            }
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(gym_serializer.errors)
+
+@api_view(['POST'])
+def edit_spraywall(request, spraywall_id):
+    if request.method == 'POST':
+        spraywall = SprayWall.objects.get(id=spraywall_id)
+        spraywall_serializer = SprayWallSerializer(instance=spraywall, data=request.data, partial=True)
+        if spraywall_serializer.is_valid():
+            spraywall_instance = spraywall_serializer.save() # Save the gym instance and get the saved object
+            gym_id = spraywall_instance.gym_id
+            spraywalls = get_spraywalls(gym_id)
+            data = {
+                'spraywalls': spraywalls
+            }
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(spraywall_serializer.errors)
