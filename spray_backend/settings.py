@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-import environ, os
+import environ
 env = environ.Env()
 environ.Env.read_env()
 
@@ -140,25 +140,14 @@ STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# AWS_S3_SESSION_PROFILE
-# AWS_S3_ACCESS_KEY_ID
-# AWS_S3_SECRET_ACCESS_KEY
-AWS_ACCESS_KEY_ID = 'AKIA24PWBGA5KVTRS7UR'
-AWS_SECRET_ACCESS_KEY = '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'
+AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = 'sprayimages'
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
 AWS_S3_OBJECT_PARAMETERS = {
     'CacheControl': 'max-age=86400',
 }
-
-# # Static Files Configuration
-# STATICFILES_DIRS = [
-#     # Other static file directories, if any
-# ]
-    
-# STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
-# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # Media Files Configuration
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'

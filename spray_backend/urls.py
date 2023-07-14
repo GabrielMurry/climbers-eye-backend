@@ -16,43 +16,41 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from spray_backend import views
 from django.conf.urls.static import static
 from django.conf import settings
-from .views import csrf_token_view
+from spray_backend.views import auth, boulder, circuit, gym, profile, spraywall
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('csrf-token/', csrf_token_view, name='csrf_token'),
-    path('login/', views.login_user),
-    path('signup/', views.signup_user),
-    path('logout/', views.logout_user),
-    path('composite/', views.composite),
-    path('add_gym/<int:user_id>', views.add_gym),
-    path('home/<int:user_id>', views.home),
-    path('list/<int:spraywall_id>/<int:user_id>', views.list),
-    path('spraywall/', views.spraywall),
-    path('add_boulder/<int:spraywall_id>/<int:user_id>', views.add_boulder),
-    path('like_boulder/<int:boulder_id>/<int:user_id>', views.like_boulder),
-    path('bookmark_boulder/<int:boulder_id>/<int:user_id>', views.bookmark_boulder),
-    path('sent_boulder/<int:boulder_id>', views.sent_boulder),
-    path('updated_boulder_data/<int:boulder_id>/<int:user_id>', views.updated_boulder_data),
-    path('delete_boulder/<int:boulder_id>', views.delete_boulder),
-    path('query_gyms/', views.query_gyms),
-    path('queried_gym_spraywall/<int:gym_id>', views.queried_gym_spraywall),
-    path('choose_gym/<int:user_id>/<int:gym_id>', views.choose_gym),
-    path('profile/<int:user_id>/<int:spraywall_id>', views.profile),
-    path('circuits/<int:user_id>/<int:spraywall_id>/<int:boulder_id>', views.circuits),
-    path('delete_circuit/<int:user_id>/<int:spraywall_id>/<int:circuit_id>', views.delete_circuit),
-    path('add_or_remove_boulder_in_circuit/<int:circuit_id>/<int:boulder_id>', views.add_or_remove_boulder_in_circuit),
-    path('get_boulders_from_circuit/<int:user_id>/<int:circuit_id>', views.get_boulders_from_circuit),
-    path('boulder_stats/<int:boulder_id>', views.boulder_stats),
-    path('filter_circuits/<int:user_id>/<int:spraywall_id>', views.filter_circuits),
-    path('add_profile_banner_image/<int:user_id>', views.add_profile_banner_image),
-    path('add_new_spraywall/<int:gym_id>', views.add_new_spraywall),
-    path('delete_spraywall/<int:spraywall_id>', views.delete_spraywall),
-    path('edit_gym/<int:gym_id>', views.edit_gym),
-    path('edit_spraywall/<int:spraywall_id>', views.edit_spraywall),
+    path('admin/', admin.site.urls), # auth
+    path('csrf_token/', auth.csrf_token_view),
+    path('login/', auth.login_user), # auth
+    path('signup/', auth.signup_user), # auth
+    path('logout/', auth.logout_user), # auth
+    path('add_gym/<int:user_id>', gym.add_gym), # gym
+    path('query_gyms/', gym.query_gyms), # gym
+    path('edit_gym/<int:gym_id>', gym.edit_gym), # gym
+    path('choose_gym/<int:user_id>/<int:gym_id>', gym.choose_gym), # gym
+    path('spraywall/', spraywall.spraywall), # spraywall
+    path('queried_gym_spraywall/<int:gym_id>', spraywall.queried_gym_spraywall), # spraywall
+    path('add_new_spraywall/<int:gym_id>', spraywall.add_new_spraywall), # spraywall
+    path('delete_spraywall/<int:spraywall_id>', spraywall.delete_spraywall), # spraywall
+    path('edit_spraywall/<int:spraywall_id>', spraywall.edit_spraywall), # spraywall
+    path('composite/', boulder.composite), # boulder
+    path('list/<int:spraywall_id>/<int:user_id>', boulder.list), # boulder
+    path('add_boulder/<int:spraywall_id>/<int:user_id>', boulder.add_boulder), # boulder
+    path('like_boulder/<int:boulder_id>/<int:user_id>', boulder.like_boulder), # boulder
+    path('bookmark_boulder/<int:boulder_id>/<int:user_id>', boulder.bookmark_boulder), # boulder
+    path('sent_boulder/<int:boulder_id>', boulder.sent_boulder), # boulder
+    path('updated_boulder_data/<int:boulder_id>/<int:user_id>', boulder.updated_boulder_data), # boulder
+    path('delete_boulder/<int:boulder_id>', boulder.delete_boulder), # boulder
+    path('add_or_remove_boulder_in_circuit/<int:circuit_id>/<int:boulder_id>', boulder.add_or_remove_boulder_in_circuit), # boulder
+    path('get_boulders_from_circuit/<int:user_id>/<int:circuit_id>', boulder.get_boulders_from_circuit), # boulder
+    path('boulder_stats/<int:boulder_id>', boulder.boulder_stats), # boulder
+    path('circuits/<int:user_id>/<int:spraywall_id>/<int:boulder_id>', circuit.circuits), # circuit
+    path('delete_circuit/<int:user_id>/<int:spraywall_id>/<int:circuit_id>', circuit.delete_circuit), # circuit
+    path('filter_circuits/<int:user_id>/<int:spraywall_id>', circuit.filter_circuits), # circuit
+    path('profile/<int:user_id>/<int:spraywall_id>', profile.profile), # profile
+    path('add_profile_banner_image/<int:user_id>', profile.add_profile_banner_image), # profile
 ]
 
 # serve those static image files
