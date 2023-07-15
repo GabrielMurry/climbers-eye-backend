@@ -113,8 +113,6 @@ def delete_image_from_s3(image_url):
     # Delete the object from the S3 bucket
     s3.delete_object(Bucket=bucket_name, Key=s3_key)
 
-
-
 def get_filter_queries(request):
     # Convert search query to lowercase
     search_query = request.GET.get('search', '').lower()
