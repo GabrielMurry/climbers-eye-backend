@@ -51,6 +51,7 @@ urlpatterns = [
     path('filter_circuits/<int:user_id>/<int:spraywall_id>', circuit.filter_circuits), # circuit
     path('profile/<int:user_id>/<int:spraywall_id>', profile.profile), # profile
     path('add_profile_banner_image/<int:user_id>', profile.add_profile_banner_image), # profile
+    path('get_all_user_gyms/<int:user_id>', profile.get_all_user_gyms), # profile
 ]
 
 # serve those static image files

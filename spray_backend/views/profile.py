@@ -129,3 +129,30 @@ def add_profile_banner_image(request, user_id):
             return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
+
+@api_view(['GET'])
+def get_all_user_gyms(request, user_id):
+    if request.method == 'GET':
+        # Step 2: Query the Send model to get all sends associated with the person
+        sends = Send.objects.filter(person=user_id).select_related('boulder__spraywall__gym')
+
+        # Step 3: Traverse the foreign keys to get unique gyms and spraywalls
+        unique_gyms = set()
+        unique_spraywalls = set()
+
+        for send in sends:
+            boulder = send.boulder
+            spraywall = boulder.spraywall
+            gym = spraywall.gym
+
+            unique_gyms.add(gym)
+            unique_spraywalls.add(spraywall)
+
+        print("Unique Gyms:")
+        for gym in unique_gyms:
+            print(gym.name)  # Assuming the Gym model has a 'name' field (replace with the actual field name)
+
+        print("Unique Spraywalls:")
+        for spraywall in unique_spraywalls:
+            print(spraywall.name)  # Assuming the Spraywall model has a 'name' field (replace with the actual field name)
+        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
