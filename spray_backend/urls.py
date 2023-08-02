@@ -30,6 +30,7 @@ urlpatterns = [
     path('query_gyms/', gym.query_gyms), # gym
     path('edit_gym/<int:gym_id>', gym.edit_gym), # gym
     path('choose_gym/<int:user_id>/<int:gym_id>', gym.choose_gym), # gym
+    path('delete_gym/<int:gym_id>', gym.delete_gym), # gym
     path('spraywall/', spraywall.spraywall), # spraywall
     path('queried_gym_spraywall/<int:gym_id>', spraywall.queried_gym_spraywall), # spraywall
     path('add_new_spraywall/<int:gym_id>', spraywall.add_new_spraywall), # spraywall
@@ -46,12 +47,15 @@ urlpatterns = [
     path('add_or_remove_boulder_in_circuit/<int:circuit_id>/<int:boulder_id>', boulder.add_or_remove_boulder_in_circuit), # boulder
     path('get_boulders_from_circuit/<int:user_id>/<int:circuit_id>', boulder.get_boulders_from_circuit), # boulder
     path('boulder_stats/<int:boulder_id>', boulder.boulder_stats), # boulder
+    path('logbook_list/<int:spraywall_id>/<int:user_id>', boulder.logbook_list), # boulder
     path('circuits/<int:user_id>/<int:spraywall_id>/<int:boulder_id>', circuit.circuits), # circuit
     path('delete_circuit/<int:user_id>/<int:spraywall_id>/<int:circuit_id>', circuit.delete_circuit), # circuit
     path('filter_circuits/<int:user_id>/<int:spraywall_id>', circuit.filter_circuits), # circuit
     path('profile/<int:user_id>/<int:spraywall_id>', profile.profile), # profile
     path('add_profile_banner_image/<int:user_id>', profile.add_profile_banner_image), # profile
     path('get_all_user_gyms/<int:user_id>', profile.get_all_user_gyms), # profile
+    path('profile_main/<int:user_id>', profile.profile_main), # profile
+    path('profile_quick_data/<int:user_id>/<int:spraywall_id>', profile.profile_quick_data), # profile
 ]
 
 # serve those static image files

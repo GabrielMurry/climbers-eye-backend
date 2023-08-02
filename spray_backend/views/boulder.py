@@ -70,6 +70,38 @@ def list(request, spraywall_id, user_id):
         data = get_boulder_data(boulders, user_id, spraywall_id)
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
+@api_view(['GET'])
+def logbook_list(request, spraywall_id, user_id):
+    if request.method == 'GET':
+        # get filter queries from attached to endpoint request
+        section = request.GET.get('section', '').lower()
+        search_query, sort_by, min_grade_index, max_grade_index, circuits, climb_type, filter_status = get_filter_queries(request)
+        # get all logged boulders (sent boulders) on the specified spraywall
+        boulders = []
+        if section == 'logbook':
+            boulders = Boulder.objects.filter(send__person=user_id, spraywall_id=spraywall_id)
+        elif section == 'likes':
+            boulders = Boulder.objects.filter(like__person=user_id, spraywall_id=spraywall_id)
+        elif section == 'bookmarks':
+            boulders = Boulder.objects.filter(bookmark__person=user_id, spraywall_id=spraywall_id)
+        elif section == 'circuits':
+            circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+            for circuit in circuits:
+                print(circuit)
+            data = []
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        elif section == 'creations':
+            boulders = Boulder.objects.filter(setter_person=user_id, spraywall_id=spraywall_id)
+        # Filter
+        boulders = filter_by_search_query(boulders, search_query)
+        boulders = filter_by_circuits(boulders, circuits)
+        boulders = filter_by_sort_by(boulders, sort_by, user_id)
+        boulders = filter_by_status(boulders, filter_status, user_id)
+        boulders = filter_by_grades(boulders, min_grade_index, max_grade_index)
+        # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
+        data = get_boulder_data(boulders, user_id, spraywall_id)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+    
 @api_view(['POST', 'DELETE'])
 def like_boulder(request, boulder_id, user_id):
     if request.method == 'POST':

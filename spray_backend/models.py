@@ -1,9 +1,5 @@
 from django.db import models
 
-class Movie(models.Model):
-    name = models.CharField(max_length=200)
-    image = models.ImageField(upload_to='spray_backend/files/covers')
-
 class Gym(models.Model):
     name = models.CharField(max_length=100)
     location = models.CharField(max_length=100, blank=True, null=True)
@@ -30,7 +26,7 @@ class Person(models.Model):
     banner_image_height = models.CharField(max_length=10, default=1000, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     # foreign keys
-    gym = models.ForeignKey(Gym, on_delete=models.CASCADE, blank=True, null=True)
+    gym = models.ForeignKey(Gym, on_delete=models.SET_NULL, blank=True, null=True)
 
 class Boulder(models.Model):
     name = models.CharField(max_length=50)
@@ -47,8 +43,8 @@ class Boulder(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     # foreign keys
     spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE, blank=True, null=True)
-    setter_person = models.ForeignKey(Person, on_delete=models.CASCADE, blank=True, null=True, related_name='setter_person')
-    first_ascent_person = models.ForeignKey(Person, on_delete=models.CASCADE, blank=True, null=True, related_name='first_ascent_person')
+    setter_person = models.ForeignKey(Person, on_delete=models.SET_NULL, blank=True, null=True, related_name='setter_person')
+    first_ascent_person = models.ForeignKey(Person, on_delete=models.SET_NULL, blank=True, null=True, related_name='first_ascent_person')
 
 class Circuit(models.Model):
     name = models.CharField(max_length=50)
@@ -91,8 +87,3 @@ class Bookmark(models.Model):
     # the unique_together attribute in the Meta class ensures that a person can only like a particular boulder once. If they try to like the same boulder again, it will raise a unique constraint violation error.
     class Meta:
         unique_together = ('person', 'boulder')
-
-
-class Cat(models.Model):
-    name = models.CharField(max_length=30)
-    picture = models.FileField(upload_to='media/')

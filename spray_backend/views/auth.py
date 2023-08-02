@@ -38,13 +38,13 @@ def login_user(request):
             login(request, user)
             person = Person.objects.get(username=username)
             data = {}
+            user = {
+                'id': person.id,
+                'name': username
+            }
             if person.gym_id:
                 gym_id = person.gym_id
                 spraywalls = get_spraywalls(gym_id)
-                user = {
-                    'id': person.id,
-                    'name': username
-                }
                 gym = {
                     'id': person.gym_id,
                     'name': person.gym.name,
@@ -64,11 +64,11 @@ def login_user(request):
                 }
             else:
                 data = {
-                    'userID': person.id, 
-                    'headshotImageUri': "data:image/png;base64," + person.headshot_image_data, 
+                    'user': user, 
+                    'headshotImageUri': "data:image/png;base64," + person.headshot_image_url if person.headshot_image_url else None, 
                     'headshotImageWidth': person.headshot_image_width, 
                     'headshotImageHeight': person.headshot_image_height, 
-                    'bannerImageUri': "data:image/png;base64," + person.banner_image_data if person.banner_image_data else None, 
+                    'bannerImageUri': "data:image/png;base64," + person.banner_image_url if person.banner_image_url else None, 
                     'bannerImageWidth': person.banner_image_width, 
                     'bannerImageHeight': person.banner_image_height
                 }

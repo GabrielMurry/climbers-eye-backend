@@ -106,3 +106,27 @@ def edit_gym(request, gym_id):
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(gym_serializer.errors)
+
+@api_view(['DELETE'])
+def delete_gym(request, gym_id):
+    if request.method == 'DELETE':
+        # get gym row
+        gym_row = Gym.objects.get(id=gym_id)
+        # get all spray walls associated with specific gym
+        spraywalls = SprayWall.objects.filter(gym=gym_id)
+        for spraywall in spraywalls:
+            # get all boulders associated with specific spray wall
+            boulders = Boulder.objects.filter(spraywall=spraywall.id)
+            for boulder in boulders:
+                # delete s3 image boulder
+                delete_image_from_s3(boulder.boulder_image_url)
+                # delete boulder
+                boulder.delete()
+            # when all boulders associated with specific spray wall are deleted, then delete spray wall s3 image
+            delete_image_from_s3(spraywall.spraywall_image_url)
+            # delete spray wall
+            spraywall.delete()
+        # when all spray walls associated with specific gym are deleted, then delete gym
+        gym_row.delete()
+        # Return a success response
+        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
