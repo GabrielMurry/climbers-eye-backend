@@ -56,6 +56,7 @@ urlpatterns = [
     path('get_all_user_gyms/<int:user_id>', profile.get_all_user_gyms), # profile
     path('profile_main/<int:user_id>', profile.profile_main), # profile
     path('profile_quick_data/<int:user_id>/<int:spraywall_id>', profile.profile_quick_data), # profile
+    path('edit_profile/<int:user_id>', profile.edit_profile), # profile
 ]
 
 # serve those static image files

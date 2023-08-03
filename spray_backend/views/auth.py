@@ -51,24 +51,30 @@ def login_user(request):
                     'location': person.gym.location,
                     'type': person.gym.type,
                 }
+                headshot_image = {
+                    'url': "data:image/png;base64," + person.headshot_image_url if person.headshot_image_url else None,
+                    'width':  person.headshot_image_width, 
+                    'height': person.headshot_image_height, 
+                }
+                banner_image = {
+                    'url': "data:image/png;base64," + person.banner_image_url if person.banner_image_url else None, 
+                    'width': person.banner_image_width, 
+                    'height': person.banner_image_height
+                }
                 data = {
                     'user': user, 
                     'gym': gym,
                     'spraywalls': spraywalls, 
-                    'headshotImageUri': "data:image/png;base64," + person.headshot_image_url if person.headshot_image_url else None, 
-                    'headshotImageWidth': person.headshot_image_width, 
-                    'headshotImageHeight': person.headshot_image_height, 
-                    'bannerImageUri': "data:image/png;base64," + person.banner_image_url if person.banner_image_url else None, 
-                    'bannerImageWidth': person.banner_image_width, 
-                    'bannerImageHeight': person.banner_image_height
+                    'headshotImage': headshot_image,
+                    'bannerImage': banner_image,
                 }
             else:
                 data = {
                     'user': user, 
-                    'headshotImageUri': "data:image/png;base64," + person.headshot_image_url if person.headshot_image_url else None, 
+                    'headshotImageUrl': "data:image/png;base64," + person.headshot_image_url if person.headshot_image_url else None, 
                     'headshotImageWidth': person.headshot_image_width, 
                     'headshotImageHeight': person.headshot_image_height, 
-                    'bannerImageUri': "data:image/png;base64," + person.banner_image_url if person.banner_image_url else None, 
+                    'bannerImageUrl': "data:image/png;base64," + person.banner_image_url if person.banner_image_url else None, 
                     'bannerImageWidth': person.banner_image_width, 
                     'bannerImageHeight': person.banner_image_height
                 }

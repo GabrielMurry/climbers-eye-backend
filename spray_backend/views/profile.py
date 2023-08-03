@@ -370,3 +370,30 @@ def profile_main(request, user_id):
 
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
+@api_view(['POST'])
+def edit_profile(request, user_id):
+    if request.method == 'POST':
+        base64_uri = request.data['headshotImage']['url']
+        url = s3_image_url(base64_uri.split(",")[1])
+        width = request.data['headshotImage']['width']
+        height = request.data['headshotImage']['height']
+        new_headshot_image = {
+            'headshot_image_url': url,
+            'headshot_image_width': width,
+            'headshot_image_height': height,
+        }
+        user = Person.objects.get(id=user_id)
+        person_serializer = PersonSerializer(instance=user, data=new_headshot_image, partial=True)
+        if person_serializer.is_valid():
+            person_instance = person_serializer.save() # Save the gym instance and get the saved object
+            headshot_image = {
+                'url': person_instance.headshot_image_url,
+                'width': person_instance.headshot_image_width,
+                'height': person_instance.headshot_image_height,
+            }
+            data = {
+                'headshotImage': headshot_image
+            }
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(person_serializer.errors)
