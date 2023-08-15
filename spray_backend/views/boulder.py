@@ -49,6 +49,7 @@ def add_boulder(request, spraywall_id, user_id):
                 'likes': boulder.likes_count,
                 'id': boulder.id
             }
+            add_activity('boulder', boulder.id, 'created', boulder.name, None, spraywall_id, user_id)
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(boulder_serializer.errors)
@@ -84,12 +85,6 @@ def logbook_list(request, spraywall_id, user_id):
             boulders = Boulder.objects.filter(like__person=user_id, spraywall_id=spraywall_id)
         elif section == 'bookmarks':
             boulders = Boulder.objects.filter(bookmark__person=user_id, spraywall_id=spraywall_id)
-        elif section == 'circuits':
-            circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
-            for circuit in circuits:
-                print(circuit)
-            data = []
-            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         elif section == 'creations':
             boulders = Boulder.objects.filter(setter_person=user_id, spraywall_id=spraywall_id)
         # Filter
@@ -108,15 +103,20 @@ def like_boulder(request, boulder_id, user_id):
         data = { 'person': user_id, 'boulder': boulder_id }
         like_serializer = LikeSerializer(data=data)
         if like_serializer.is_valid():
-            like_serializer.save()
-            data = {'isLiked': True}
+            like_instance = like_serializer.save()
+            data = {
+                'isLiked': True
+            }
+            add_activity('like', like_instance.id, 'liked', like_instance.boulder.name, like_instance.boulder.grade, like_instance.boulder.spraywall.id, user_id)
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(like_serializer.errors)
     if request.method == 'DELETE':
         liked_row = Like.objects.filter(person=user_id, boulder=boulder_id)
         liked_row.delete()
-        data = {'isLiked': False}
+        data = {
+            'isLiked': False
+        }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['POST', 'DELETE'])
@@ -125,15 +125,20 @@ def bookmark_boulder(request, boulder_id, user_id):
         data = { 'person': user_id, 'boulder': boulder_id }
         bookmark_serializer = BookmarkSerializer(data=data)
         if bookmark_serializer.is_valid():
-            bookmark_serializer.save()
-            data = {'isBookmarked': True}
+            bookmark_instance = bookmark_serializer.save()
+            data = {
+                'isBookmarked': True
+            }
+            add_activity('like', bookmark_instance.id, 'bookmarked', bookmark_instance.boulder.name, bookmark_instance.boulder.grade, bookmark_instance.boulder.spraywall.id, user_id)
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(bookmark_serializer.errors)
     if request.method == 'DELETE':
         bookmark_row = Bookmark.objects.filter(person=user_id, boulder=boulder_id)
         bookmark_row.delete()
-        data = {'isBookmarked': False}
+        data = {
+            'isBookmarked': False
+        }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
@@ -143,7 +148,7 @@ def sent_boulder(request, boulder_id):
         # update new info for the actual Boulder --> ?
         send_serializer = SendSerializer(data=request.data)
         if send_serializer.is_valid():
-            send_serializer.save()
+            send_instance = send_serializer.save()
             boulder = Boulder.objects.get(id=boulder_id)
             boulder.sends_count += 1
             boulder.grade = request.data.get('grade')
@@ -152,6 +157,7 @@ def sent_boulder(request, boulder_id):
                 person = Person.objects.get(id=request.data.get('person'))
                 boulder.first_ascent_person = person
             boulder.save()
+            add_activity('send', send_instance.id, 'sent', send_instance.boulder.name, send_instance.grade, send_instance.boulder.spraywall.id, send_instance.person.id)
             return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
         else:
             print(send_serializer.errors)

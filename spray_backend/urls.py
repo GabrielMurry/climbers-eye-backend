@@ -18,7 +18,7 @@ from django.contrib import admin
 from django.urls import path
 from django.conf.urls.static import static
 from django.conf import settings
-from spray_backend.views import auth, boulder, circuit, gym, profile, spraywall
+from spray_backend.views import auth, boulder, circuit, gym, profile, spraywall, activity
 
 urlpatterns = [
     path('admin/', admin.site.urls), # auth
@@ -57,6 +57,8 @@ urlpatterns = [
     path('profile_main/<int:user_id>', profile.profile_main), # profile
     path('profile_quick_data/<int:user_id>/<int:spraywall_id>', profile.profile_quick_data), # profile
     path('edit_profile/<int:user_id>', profile.edit_profile), # profile
+    path('get_user_circuits/<int:user_id>/<int:spraywall_id>', profile.get_user_circuits), # profile
+    path('user_activity/<int:user_id>/<int:gym_id>', activity.user_activity), # activity
 ]
 
 # serve those static image files

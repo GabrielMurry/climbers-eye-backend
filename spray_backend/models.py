@@ -87,3 +87,16 @@ class Bookmark(models.Model):
     # the unique_together attribute in the Meta class ensures that a person can only like a particular boulder once. If they try to like the same boulder again, it will raise a unique constraint violation error.
     class Meta:
         unique_together = ('person', 'boulder')
+
+class Activity(models.Model):
+    date_created = models.DateTimeField(auto_now_add=True) # date
+    action = models.CharField(max_length=50)
+    item = models.CharField(max_length=50, blank=True, null=True)
+    other_info = models.CharField(max_length=100, blank=True, null=True)
+    # foreign keys
+    spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE) # required
+    person = models.ForeignKey(Person, on_delete=models.CASCADE) # required
+    boulder = models.ForeignKey(Boulder, on_delete=models.CASCADE, blank=True, null=True) # optional
+    bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE, blank=True, null=True) # optional
+    like = models.ForeignKey(Like, on_delete=models.CASCADE, blank=True, null=True) # optional
+    send = models.ForeignKey(Send, on_delete=models.CASCADE, blank=True, null=True) # optional

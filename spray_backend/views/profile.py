@@ -3,14 +3,28 @@ from . import *
 @api_view(['GET'])
 def profile_quick_data(request, user_id, spraywall_id):
     if request.method == 'GET':
-        data = {
-            'statistics': '-',
-            'logbook': 0,
-            'likes': 0,
-            'bookmarks': 0,
-            'circuits': 0,
-            'creations': 0,
-        }
+        boulders_section_quick_data = [
+            {
+                'title': 'Statistics',
+                'data': '-'
+            },
+            {
+                'title': 'Logbook',
+                'data': 0
+            },
+            {
+                'title': 'Likes',
+                'data': 0
+            },
+            {
+                'title': 'Bookmarks',
+                'data': 0
+            },
+            {
+                'title': 'Creations',
+                'data': 0
+            },
+        ]
         
         # logbook count (sends)
         boulders = Boulder.objects.filter(spraywall=spraywall_id)
@@ -28,8 +42,8 @@ def profile_quick_data(request, user_id, spraywall_id):
                 if grade_idx > top_grade_idx:
                     top_grade = send_obj.grade
                 sends_count += 1
-        data['statistics'] = top_grade
-        data['logbook'] = sends_count
+        boulders_section_quick_data[0]['data'] = top_grade
+        boulders_section_quick_data[1]['data'] = sends_count
 
         # creations count
         boulders = Boulder.objects.filter(spraywall=spraywall_id, setter_person=user_id)
@@ -43,7 +57,7 @@ def profile_quick_data(request, user_id, spraywall_id):
             else:
                 projects_count += 1
             total_sends_count += boulder.sends_count
-        data['creations'] = established_count + projects_count
+        boulders_section_quick_data[4]['data'] = established_count + projects_count
 
         # likes count
         boulders = Boulder.objects.filter(spraywall=spraywall_id)
@@ -52,7 +66,7 @@ def profile_quick_data(request, user_id, spraywall_id):
             liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
             if liked_row.exists():
                 likes_count += 1
-        data['likes'] = likes_count
+        boulders_section_quick_data[2]['data'] = likes_count
 
         # bookmarks count
         boulders = Boulder.objects.filter(spraywall=spraywall_id)
@@ -61,11 +75,11 @@ def profile_quick_data(request, user_id, spraywall_id):
             bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
             if bookmarked_row.exists():
                 bookmarks_count += 1
-        data['bookmarks'] = bookmarks_count
+        boulders_section_quick_data[3]['data'] = bookmarks_count
 
-        # circuits count
-        circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
-        data['circuits'] = len(circuits)
+        data = {
+            'bouldersSectionQuickData': boulders_section_quick_data
+        }
 
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
@@ -185,6 +199,29 @@ def profile(request, user_id, spraywall_id):
         data = {
             'boulderData': boulder_data,
             'otherData': other_data,
+        }
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+def get_user_circuits(request, user_id, spraywall_id):
+    if request.method == 'GET':
+        circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+        circuits_data = []
+        for circuit in circuits:
+            # retrieving all boulder data in particular circuit
+            boulders = circuit.boulders.all()
+            boulder_data = get_boulder_data(boulders, user_id, spraywall_id)
+            # putting boulder data inside circuits data
+            circuits_data.append({
+                'id': circuit.id,
+                'name': circuit.name,
+                'description': circuit.description,
+                'color': circuit.color,
+                'private': circuit.private,
+                'boulderData': boulder_data,
+            })
+        data = {
+            'circuitsData': circuits_data,
         }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     

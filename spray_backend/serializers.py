@@ -1,5 +1,10 @@
-from .models import Gym, SprayWall, Boulder, Person, Send, Like, Circuit, Bookmark
+from .models import Gym, SprayWall, Boulder, Person, Send, Like, Circuit, Bookmark, Activity
 from rest_framework import serializers
+
+class ActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Activity
+        fields = '__all__'
 
 class BookmarkSerializer(serializers.ModelSerializer):
     class Meta:

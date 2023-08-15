@@ -1,12 +1,12 @@
 from rest_framework.decorators import api_view
 from spray_backend.forms import CreateUserForm
-from spray_backend.serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer, CircuitSerializer, BookmarkSerializer
+from spray_backend.serializers import GymSerializer, SprayWallSerializer, BoulderSerializer, PersonSerializer, LikeSerializer, SendSerializer, CircuitSerializer, BookmarkSerializer, ActivitySerializer
 from rest_framework.response import Response
 from django.middleware.csrf import get_token
 from rest_framework import status
 from django.db.models import Q, Count
 from django.contrib.auth import authenticate, login, logout
-from spray_backend.models import Gym, SprayWall, Person, Boulder, Like, Send, Circuit, Bookmark
+from spray_backend.models import Gym, SprayWall, Person, Boulder, Like, Send, Circuit, Bookmark, Activity
 from PIL import Image, ImageEnhance
 from spray_backend.utils.constants import boulder_grades, boulders_bar_chart_data, colors
 from io import BytesIO
@@ -236,3 +236,35 @@ def get_boulder_data(boulders, user_id, spraywall_id):
             'inCircuit': in_circuit
         })
     return data
+
+def add_activity(model_name, model_id, action, item, other_info, spraywall, user):
+    data = {
+        model_name: model_id,
+        'action': action,
+        'item': item,
+        'other_info': other_info,
+        'spraywall': spraywall,
+        'person': user
+    }
+    activity_serializer = ActivitySerializer(data=data)
+    if activity_serializer.is_valid():
+        activity_serializer.save()
+    else:
+        print(activity_serializer.errors)
+
+def delete_activity(action, item, other_info, spraywall, user):
+    # action and other_info are optional parameters!!
+    # Start with a base query without specific conditions
+    base_query = Q(item=item, spraywall=spraywall, person=user)
+
+    # Check if action is not None, then add it to the query
+    if action is not None:
+        base_query &= Q(action=action)
+
+    # Check if other_info is not None, then add it to the query
+    if other_info is not None:
+        base_query &= Q(other_info=other_info)
+
+    # Execute the query
+    activity_row = Activity.objects.filter(base_query)
+    activity_row.delete()
