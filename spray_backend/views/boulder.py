@@ -129,7 +129,7 @@ def bookmark_boulder(request, boulder_id, user_id):
             data = {
                 'isBookmarked': True
             }
-            add_activity('like', bookmark_instance.id, 'bookmarked', bookmark_instance.boulder.name, bookmark_instance.boulder.grade, bookmark_instance.boulder.spraywall.id, user_id)
+            add_activity('bookmark', bookmark_instance.id, 'bookmarked', bookmark_instance.boulder.name, bookmark_instance.boulder.grade, bookmark_instance.boulder.spraywall.id, user_id)
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(bookmark_serializer.errors)

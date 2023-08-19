@@ -17,13 +17,11 @@ class SprayWall(models.Model):
 
 class Person(models.Model):
     username = models.CharField(max_length=50)
+    name = models.CharField(max_length=30, blank=True, null=True)
     email = models.EmailField(max_length=50)
     headshot_image_url = models.TextField(blank=True)
     headshot_image_width = models.CharField(max_length=10, blank=True)
     headshot_image_height = models.CharField(max_length=10, blank=True)
-    banner_image_url = models.TextField(blank=True)
-    banner_image_width = models.CharField(max_length=10, default=1000, blank=True)
-    banner_image_height = models.CharField(max_length=10, default=1000, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     # foreign keys
     gym = models.ForeignKey(Gym, on_delete=models.SET_NULL, blank=True, null=True)
@@ -94,7 +92,7 @@ class Activity(models.Model):
     item = models.CharField(max_length=50, blank=True, null=True)
     other_info = models.CharField(max_length=100, blank=True, null=True)
     # foreign keys
-    spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE) # required
+    spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE, blank=True, null=True) # required
     person = models.ForeignKey(Person, on_delete=models.CASCADE) # required
     boulder = models.ForeignKey(Boulder, on_delete=models.CASCADE, blank=True, null=True) # optional
     bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE, blank=True, null=True) # optional

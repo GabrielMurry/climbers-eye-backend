@@ -17,7 +17,7 @@ def signup_user(request):
                 username = request.data.get('username')
                 user = {
                     'id': person_instance.id,
-                    'name': username
+                    'username': username
                 }
                 data = {
                     'user': user
@@ -40,7 +40,9 @@ def login_user(request):
             data = {}
             user = {
                 'id': person.id,
-                'name': username
+                'username': username,
+                'name': person.name,
+                'email': person.email,
             }
             if person.gym_id:
                 gym_id = person.gym_id
@@ -56,17 +58,11 @@ def login_user(request):
                     'width':  person.headshot_image_width, 
                     'height': person.headshot_image_height, 
                 }
-                banner_image = {
-                    'url': person.banner_image_url if person.banner_image_url else None, 
-                    'width': person.banner_image_width, 
-                    'height': person.banner_image_height
-                }
                 data = {
                     'user': user, 
                     'gym': gym,
                     'spraywalls': spraywalls, 
                     'headshotImage': headshot_image,
-                    'bannerImage': banner_image,
                 }
             else:
                 headshot_image = {
@@ -74,15 +70,9 @@ def login_user(request):
                     'width': person.headshot_image_width,
                     'height': person.headshot_image_height,
                 }
-                banner_image = {
-                    'url': person.banner_image_url if person.banner_image_url else None, 
-                    'width': person.banner_image_width, 
-                    'height': person.banner_image_height
-                }
                 data = {
                     'user': user, 
                     'headshotImage': headshot_image,
-                    'bannerImage': banner_image
                 }
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:

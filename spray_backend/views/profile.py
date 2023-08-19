@@ -408,21 +408,30 @@ def profile_main(request, user_id):
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-def edit_profile(request, user_id):
+def edit_headshot(request, user_id):
     if request.method == 'POST':
-        base64_uri = request.data['headshotImage']['url']
-        url = s3_image_url(base64_uri.split(",")[1])
-        width = request.data['headshotImage']['width']
-        height = request.data['headshotImage']['height']
+        # grab full base64 headshot image
+        base64_uri = request.data['url']
+        # get user
+        user = Person.objects.get(id=user_id)
+        # if user already has an existing headshot image, delete url from s3 bucket
+        if user.headshot_image_url:
+            delete_image_from_s3(user.headshot_image_url)
+        # using the raw base64 image data, upload to s3 bucket and retrieve its URL
+        url = s3_image_url(base64_uri)
+        # grab headshot image width and height
+        width = request.data['width']
+        height = request.data['height']
         new_headshot_image = {
             'headshot_image_url': url,
             'headshot_image_width': width,
             'headshot_image_height': height,
         }
-        user = Person.objects.get(id=user_id)
+        # update Person model data with new user headshot URL, width, and height
         person_serializer = PersonSerializer(instance=user, data=new_headshot_image, partial=True)
         if person_serializer.is_valid():
             person_instance = person_serializer.save() # Save the gym instance and get the saved object
+            # return headshot image url, width, and height
             headshot_image = {
                 'url': person_instance.headshot_image_url,
                 'width': person_instance.headshot_image_width,
@@ -434,3 +443,23 @@ def edit_profile(request, user_id):
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
+
+@api_view(['POST'])
+def edit_user_info(request, user_id):
+    if request.method == 'POST':
+        user = Person.objects.get(id=user_id)
+        user_serializer = PersonSerializer(instance=user, data=request.data, partial=True)
+        if user_serializer.is_valid():
+            user_instance = user_serializer.save() # Save the gym instance and get the saved object
+            user = {
+                'id': user_instance.id,
+                'username': user_instance.username,
+                'name': user_instance.name,
+                'email': user_instance.email,
+            }
+            data = {
+                'user': user
+            }
+            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        else:
+            print(user_serializer.errors)
