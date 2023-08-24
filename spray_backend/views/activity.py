@@ -1,6 +1,5 @@
 from . import *
 from django.utils import timezone
-from django.utils.dateformat import DateFormat
 from django.utils.timesince import timesince
 from rest_framework.pagination import PageNumberPagination
 

@@ -13,6 +13,7 @@ from io import BytesIO
 import json
 import uuid
 import base64
+from django.utils.dateformat import DateFormat
 from urllib.parse import urlparse
 import boto3
 from botocore.exceptions import NoCredentialsError
@@ -215,6 +216,7 @@ def get_boulder_data(boulders, user_id, spraywall_id):
             if boulder_is_in_circuit.exists():
                 in_circuit = True
                 break
+        formatted_date = DateFormat(boulder.date_created).format('F j, Y')
         data.append({
             'id': boulder.id, 
             'name': boulder.name, 
@@ -233,7 +235,8 @@ def get_boulder_data(boulders, user_id, spraywall_id):
             'isLiked': liked_boulder,
             'isBookmarked': bookmarked_boulder,
             'isSent': sent_boulder,
-            'inCircuit': in_circuit
+            'inCircuit': in_circuit,
+            'date': formatted_date,
         })
     return data
 

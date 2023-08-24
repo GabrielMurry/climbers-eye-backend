@@ -33,6 +33,7 @@ def add_boulder(request, spraywall_id, user_id):
         if boulder_serializer.is_valid():
             boulder_instance = boulder_serializer.save()
             boulder = Boulder.objects.get(id=boulder_instance.id)
+            formatted_date = DateFormat(boulder.date_created).format('F j, Y')
             data = {
                 'name': boulder.name, 
                 'description': boulder.description, 
@@ -47,7 +48,8 @@ def add_boulder(request, spraywall_id, user_id):
                 'grade': boulder.grade,
                 'quality': boulder.quality,
                 'likes': boulder.likes_count,
-                'id': boulder.id
+                'id': boulder.id,
+                'date': formatted_date,
             }
             add_activity('boulder', boulder.id, 'created', boulder.name, None, spraywall_id, user_id)
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
