@@ -114,6 +114,7 @@ def like_boulder(request, boulder_id, user_id):
         else:
             print(like_serializer.errors)
     if request.method == 'DELETE':
+        # reminder: if liked row is deleted, it automatically deletes the activity row referenced from Like's foreign id in activity. (cascades)
         liked_row = Like.objects.filter(person=user_id, boulder=boulder_id)
         liked_row.delete()
         data = {
@@ -217,10 +218,12 @@ def add_or_remove_boulder_in_circuit(request, circuit_id, boulder_id):
     if request.method == 'POST':
         # add new boulder to circuit's boulder list
         circuit.boulders.add(boulder)
+        add_activity('circuit', circuit_id, 'added', boulder.name, f'to {circuit.name}', boulder.spraywall.id, circuit.person.id)
         return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
     if request.method == 'DELETE':
         # remove particular boulder from circuit's boulder list
         circuit.boulders.remove(boulder)
+        delete_activity('added', boulder.name, f'to {circuit.name}', boulder.spraywall.id, circuit.person.id)
         return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
     
 @api_view(['GET'])

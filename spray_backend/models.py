@@ -98,3 +98,4 @@ class Activity(models.Model):
     bookmark = models.ForeignKey(Bookmark, on_delete=models.CASCADE, blank=True, null=True) # optional
     like = models.ForeignKey(Like, on_delete=models.CASCADE, blank=True, null=True) # optional
     send = models.ForeignKey(Send, on_delete=models.CASCADE, blank=True, null=True) # optional
+    circuit = models.ForeignKey(Circuit, on_delete=models.CASCADE, blank=True, null=True) # optional

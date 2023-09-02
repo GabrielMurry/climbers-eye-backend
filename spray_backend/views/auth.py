@@ -75,8 +75,11 @@ def login_user(request):
                     'headshotImage': headshot_image,
                 }
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        # else:
+        #     print('hi')
+        #     return Response({'data': 'Username or password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return Response('Username or password is incorrect')
+            return Response(status=status.HTTP_400_BAD_REQUEST)
         
 @api_view(['GET'])
 def logout_user(request):

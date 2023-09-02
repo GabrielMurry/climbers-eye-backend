@@ -255,6 +255,7 @@ def add_activity(model_name, model_id, action, item, other_info, spraywall, user
     else:
         print(activity_serializer.errors)
 
+# no need for this???
 def delete_activity(action, item, other_info, spraywall, user):
     # action and other_info are optional parameters!!
     # Start with a base query without specific conditions

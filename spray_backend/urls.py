@@ -58,6 +58,7 @@ urlpatterns = [
     path('profile_quick_data/<int:user_id>/<int:spraywall_id>', profile.profile_quick_data), # profile
     path('edit_headshot/<int:user_id>', profile.edit_headshot), # profile
     path('edit_user_info/<int:user_id>', profile.edit_user_info), # profile
+    path('update_user_gym/<int:user_id>', profile.update_user_gym), # profile
     path('get_user_circuits/<int:user_id>/<int:spraywall_id>', profile.get_user_circuits), # profile
     path('user_activity/<int:user_id>/<int:gym_id>', activity.user_activity), # activity
 ]

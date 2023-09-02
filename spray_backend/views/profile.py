@@ -463,3 +463,26 @@ def edit_user_info(request, user_id):
             return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
         else:
             print(user_serializer.errors)
+
+@api_view(['PUT'])
+def update_user_gym(request, user_id):
+    if request.method == 'PUT':
+        user = Person.objects.get(id=user_id)
+        user_serializer = PersonSerializer(instance=user, data=request.data, partial=True)
+        if user_serializer.is_valid():
+            user_serializer.save()
+            return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
+
+# @api_view(['PUT'])
+# def update_user_gym(request, user_id):
+#     try:
+#         user = Person.objects.get(id=user_id)
+#     except Person.DoesNotExist:
+#         raise Http404("User not found")
+
+#     if request.method == 'PUT':
+#         user_serializer = PersonSerializer(instance=user, data=request.data, partial=True)
+#         if user_serializer.is_valid():
+#             user_serializer.save()
+#             return Response({'message': 'User gym ID updated successfully'}, status=status.HTTP_200_OK)
+#         return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
