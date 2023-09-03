@@ -22,6 +22,8 @@ def add_boulder(request, spraywall_id, user_id):
             'description': boulder['description'],
             'matching': boulder['matching'],
             'publish': boulder['publish'],
+            'feet_follow_hands': boulder['feet_follow_hands'],
+            'kickboard_on': boulder['kickboard_on'],
             'boulder_image_url': image_url,
             'boulder_image_width': boulder['image_width'],
             'boulder_image_height': boulder['image_height'],
@@ -39,6 +41,8 @@ def add_boulder(request, spraywall_id, user_id):
                 'description': boulder.description, 
                 'matching': boulder.matching, 
                 'publish': boulder.publish,
+                'feetFollowHands': boulder.feet_follow_hands,
+                'kickboardOn': boulder.kickboard_on,
                 'url': boulder.boulder_image_url,
                 'width': boulder.boulder_image_width,
                 'height': boulder.boulder_image_height,
@@ -47,7 +51,6 @@ def add_boulder(request, spraywall_id, user_id):
                 'sends': boulder.sends_count,
                 'grade': boulder.grade,
                 'quality': boulder.quality,
-                'likes': boulder.likes_count,
                 'id': boulder.id,
                 'date': formatted_date,
             }
@@ -61,9 +64,9 @@ def list(request, spraywall_id, user_id):
     if request.method == 'GET':
         # get filter queries from attached to endpoint request
         search_query, sort_by, min_grade_index, max_grade_index, circuits, climb_type, filter_status = get_filter_queries(request)
-        # get all boulders on the specified spraywall
-        boulders = Boulder.objects.filter(spraywall=spraywall_id)
-        # Filter
+        # get all boulders on the specified spraywall AND grab all boulders except OTHER users' drafts (your drafts are private to you, so only you can see them)
+        boulders = Boulder.objects.filter(Q(publish=True) | Q(Q(publish=False) & Q(setter_person=user_id)), spraywall=spraywall_id)
+        # Filters
         boulders = filter_by_search_query(boulders, search_query)
         boulders = filter_by_circuits(boulders, circuits)
         boulders = filter_by_sort_by(boulders, sort_by, user_id)
@@ -252,12 +255,13 @@ def get_boulders_from_circuit(request, user_id, circuit_id):
                 'description': boulder.description, 
                 'matching': boulder.matching, 
                 'publish': boulder.publish, 
+                'feetFollowHands': boulder.feet_follow_hands, 
+                'kickboardOn': boulder.kickboard_on, 
                 'setter': boulder.setter_person.username, 
                 'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
                 'sends': boulder.sends_count, 
                 'grade': boulder.grade, 
                 'quality': boulder.quality, 
-                'likes': boulder.likes_count,
                 'isLiked': liked_boulder,
                 'isBookmarked': bookmarked_boulder,
                 'isSent': sent_boulder

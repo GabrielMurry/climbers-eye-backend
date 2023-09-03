@@ -27,22 +27,23 @@ class Person(models.Model):
     gym = models.ForeignKey(Gym, on_delete=models.SET_NULL, blank=True, null=True)
 
 class Boulder(models.Model):
-    name = models.CharField(max_length=50)
-    description = models.TextField(blank=True, null=True)
-    matching = models.BooleanField(default=True)
-    publish = models.BooleanField(default=True)
-    grade = models.CharField(max_length=10, blank=True, null=True)
+    name = models.CharField(max_length=50) # keep
+    description = models.TextField(blank=True, null=True) # keep
+    matching = models.BooleanField(default=True) # keep
+    publish = models.BooleanField(default=True) # keep
+    feet_follow_hands = models.BooleanField(default=True) # keep 
+    kickboard_on = models.BooleanField(default=False) # keep 
+    grade = models.CharField(max_length=10, blank=True, null=True) # keep
     quality = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True) # decimalfield rather than smallintegerfield because we want to find the average quality rating for each boulder
     sends_count = models.IntegerField(default=0)
-    boulder_image_url = models.TextField()
-    boulder_image_width = models.CharField(max_length=10, default=1000)
-    boulder_image_height = models.CharField(max_length=10, default=1000)
-    likes_count = models.IntegerField(default=0)
-    date_created = models.DateTimeField(auto_now_add=True)
+    boulder_image_url = models.TextField() # keep
+    boulder_image_width = models.CharField(max_length=10, default=1000) # keep
+    boulder_image_height = models.CharField(max_length=10, default=1000) # keep
+    date_created = models.DateTimeField(auto_now_add=True) # keep
     # foreign keys
-    spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE, blank=True, null=True)
-    setter_person = models.ForeignKey(Person, on_delete=models.SET_NULL, blank=True, null=True, related_name='setter_person')
-    first_ascent_person = models.ForeignKey(Person, on_delete=models.SET_NULL, blank=True, null=True, related_name='first_ascent_person')
+    spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE, blank=True, null=True) # keep
+    setter_person = models.ForeignKey(Person, on_delete=models.SET_NULL, blank=True, null=True, related_name='setter_person') # keep
+    first_ascent_person = models.ForeignKey(Person, on_delete=models.SET_NULL, blank=True, null=True, related_name='first_ascent_person') # keep
 
 class Circuit(models.Model):
     name = models.CharField(max_length=50)

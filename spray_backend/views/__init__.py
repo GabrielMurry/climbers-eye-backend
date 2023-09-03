@@ -136,8 +136,7 @@ def filter_by_search_query(boulders, search_query):
 def filter_by_circuits(boulders, circuits):
     # if we are filtering by circuits, find all boulders in that circuit (circuit should only be available in the current spraywall so no need to specify which spraywall)
     if circuits != []:
-        for circuit in circuits:
-            boulders = boulders.filter(circuits__id__in=circuits).distinct() # distinct because if you want all boulders in multiple circuits, there could be duplicates of boulders. Want all distinct boulders no duplicates
+        boulders = boulders.filter(circuits__id__in=circuits).distinct() # distinct because if you want all boulders in multiple circuits, there could be duplicates of boulders. Want all distinct boulders no duplicates
     return boulders
     
 def filter_by_sort_by(boulders, sort_by, user_id):
@@ -161,23 +160,18 @@ def filter_by_sort_by(boulders, sort_by, user_id):
         return boulders.order_by('-date_created')
     
 def filter_by_status(boulders, status, user_id):
-     # Filtering by status. 'all' is default and applies to all types of status - so no condition for 'all'
+    # Filtering by status. 'all' is default and applies to all types of status - so no condition for 'all'
     if status == 'all':
           return boulders
     elif status == 'established':
-        temp = []
-        for boulder in boulders:
-            sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
-            if sent_row.exists():
-                temp.append(boulder)
-        return temp
+        boulders = boulders.filter(grade__isnull=False)
+        return boulders
     elif status == 'projects':
-        temp = []
-        for boulder in boulders:
-            sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
-            if not sent_row.exists():
-                temp.append(boulder)
-        return temp
+        boulders = boulders.filter(grade__isnull=True)
+        return boulders
+    elif status == 'drafts':
+        boulders = boulders.filter(setter_person=user_id, publish=False)
+        return boulders
     
 def filter_by_grades(boulders, min_grade_index, max_grade_index):
      # filter through grades (include status labeled 'project' (graded 'None'))
@@ -226,12 +220,13 @@ def get_boulder_data(boulders, user_id, spraywall_id):
             'height': boulder.boulder_image_height,
             'matching': boulder.matching, 
             'publish': boulder.publish, 
+            'feetFollowHands': boulder.feet_follow_hands, 
+            'kickboardOn': boulder.kickboard_on, 
             'setter': boulder.setter_person.username, 
             'firstAscent': boulder.first_ascent_person.username if boulder.first_ascent_person else None, 
             'sends': boulder.sends_count, 
             'grade': boulder.grade, 
             'quality': boulder.quality, 
-            'likes': boulder.likes_count,
             'isLiked': liked_boulder,
             'isBookmarked': bookmarked_boulder,
             'isSent': sent_boulder,
