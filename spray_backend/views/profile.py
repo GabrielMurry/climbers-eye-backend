@@ -279,8 +279,8 @@ def get_all_user_gyms(request, user_id):
             gym_id = like.boulder.spraywall.gym.id
             if not is_visited(gym_id, visited_gyms):
                 gym_name = like.boulder.spraywall.gym.name
-                gym_location = send.boulder.spraywall.gym.location
-                gym_type = send.boulder.spraywall.gym.type
+                gym_location = like.boulder.spraywall.gym.location
+                gym_type = like.boulder.spraywall.gym.type
                 spraywalls = get_spraywalls(gym_id)
                 gym_dict = {'id': gym_id, 'name': gym_name, 'location': gym_location, 'type': gym_type, 'spraywalls': spraywalls}
                 gyms.append(gym_dict)
@@ -289,8 +289,8 @@ def get_all_user_gyms(request, user_id):
             gym_id = bookmark.boulder.spraywall.gym.id
             if not is_visited(gym_id, visited_gyms):
                 gym_name = bookmark.boulder.spraywall.gym.name
-                gym_location = send.boulder.spraywall.gym.location
-                gym_type = send.boulder.spraywall.gym.type
+                gym_location = bookmark.boulder.spraywall.gym.location
+                gym_type = bookmark.boulder.spraywall.gym.type
                 spraywalls = get_spraywalls(gym_id)
                 gym_dict = {'id': gym_id, 'name': gym_name, 'location': gym_location, 'type': gym_type, 'spraywalls': spraywalls}
                 gyms.append(gym_dict)
@@ -299,8 +299,8 @@ def get_all_user_gyms(request, user_id):
             gym_id = circuit.spraywall.gym.id
             if not is_visited(gym_id, visited_gyms):
                 gym_name = circuit.spraywall.gym.name
-                gym_location = send.boulder.spraywall.gym.location
-                gym_type = send.boulder.spraywall.gym.type
+                gym_location = circuit.spraywall.gym.location
+                gym_type = circuit.spraywall.gym.type
                 spraywalls = get_spraywalls(gym_id)
                 gym_dict = {'id': gym_id, 'name': gym_name, 'location': gym_location, 'type': gym_type, 'spraywalls': spraywalls}
                 gyms.append(gym_dict)
@@ -309,8 +309,8 @@ def get_all_user_gyms(request, user_id):
             gym_id = set_boulder.spraywall.gym.id
             if not is_visited(gym_id, visited_gyms):
                 gym_name = set_boulder.spraywall.gym.name
-                gym_location = send.boulder.spraywall.gym.location
-                gym_type = send.boulder.spraywall.gym.type
+                gym_location = set_boulder.spraywall.gym.location
+                gym_type = set_boulder.spraywall.gym.type
                 spraywalls = get_spraywalls(gym_id)
                 gym_dict = {'id': gym_id, 'name': gym_name, 'location': gym_location, 'type': gym_type, 'spraywalls': spraywalls}
                 gyms.append(gym_dict)
