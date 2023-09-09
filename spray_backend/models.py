@@ -35,7 +35,7 @@ class Boulder(models.Model):
     kickboard_on = models.BooleanField(default=False) # keep 
     grade = models.CharField(max_length=10, blank=True, null=True) # keep
     quality = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True) # decimalfield rather than smallintegerfield because we want to find the average quality rating for each boulder
-    sends_count = models.IntegerField(default=0)
+    sends_count = models.PositiveIntegerField(default=0)
     boulder_image_url = models.TextField() # keep
     boulder_image_width = models.CharField(max_length=10, default=1000) # keep
     boulder_image_height = models.CharField(max_length=10, default=1000) # keep
@@ -75,8 +75,9 @@ class Send(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE)
     boulder = models.ForeignKey(Boulder, on_delete=models.CASCADE)
 
-    class Meta:
-        unique_together = ('person', 'boulder')
+    # don't need because user is allowed to log as many repeated ascends on the same boulder
+    # class Meta:
+    #     unique_together = ('person', 'boulder')
 
 class Bookmark(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)

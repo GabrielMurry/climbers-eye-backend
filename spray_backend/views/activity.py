@@ -59,7 +59,6 @@ def user_activity(request, user_id, gym_id):
 
         activity_data = []
         for activity in paginated_activities:
-            print(activity)
             formatted_date = DateFormat(activity.date_created).format('F j, Y')
             date_stamp = abbreviate_timesince(timesince(activity.date_created, timezone.now()).split(',')[0])
             activity_data.append({

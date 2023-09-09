@@ -5,10 +5,6 @@ def profile_quick_data(request, user_id, spraywall_id):
     if request.method == 'GET':
         boulders_section_quick_data = [
             {
-                'title': 'Statistics',
-                'data': '-'
-            },
-            {
                 'title': 'Logbook',
                 'data': 0
             },
@@ -25,26 +21,41 @@ def profile_quick_data(request, user_id, spraywall_id):
                 'data': 0
             },
         ]
+        stats_section_quick_data = [
+            {
+                'title': 'Sessions',
+                'data': 0
+            },
+            {
+                'title': 'Top Grade',
+                'data': '-'
+            },
+            {
+                'title': 'Flashes',
+                'data': 0
+            },
+        ]
         
         # logbook count (sends)
-        boulders = Boulder.objects.filter(spraywall=spraywall_id)
-        # get the total count of user's successful climbs
-        sends_count = 0
-        top_grade = '4a/V0'
-        temp = []
-        for boulder in boulders:
-            send_row = Send.objects.filter(person=user_id, boulder=boulder.id)
-            if send_row.exists():
-                send_obj = send_row.first()  # Access the first object in the queryset
-                # finding top grade (hardest climbed grade difficulty)
-                grade_idx = boulder_grades[send_obj.grade]
-                top_grade_idx = boulder_grades[top_grade]
-                if grade_idx > top_grade_idx:
-                    top_grade = send_obj.grade
-                sends_count += 1
-        boulders_section_quick_data[0]['data'] = top_grade
-        boulders_section_quick_data[1]['data'] = sends_count
-
+        boulders = Boulder.objects.filter(send__person=user_id, spraywall=spraywall_id)
+        # Calculate the total count of user's successful climbs
+        sends_count = boulders.count()
+        # Find the top grade (hardest climbed grade difficulty)
+        top_grade_obj = boulders.aggregate(Max('grade'))
+        top_grade = top_grade_obj['grade__max'] if top_grade_obj['grade__max'] else '4a/V0'
+        # insert into object data
+        stats_section_quick_data[1]['data'] = top_grade
+        boulders_section_quick_data[0]['data'] = sends_count
+        # Total count of flashes
+        flashes = 0
+        sent_boulders = boulders.distinct()
+        for boulder in sent_boulders:
+            send_row = Send.objects.filter(boulder=boulder.id).first() # first uploaded boulder that the user ascended (not counting repeated ascents which were not uploaded first)
+            if send_row.attempts == 1:
+                flashes += 1
+        # insert into object data
+        stats_section_quick_data[2]['data'] = flashes
+        
         # creations count
         boulders = Boulder.objects.filter(spraywall=spraywall_id, setter_person=user_id)
         # established count --> a published boulder with at least 1 send. NOT a project. 
@@ -57,7 +68,7 @@ def profile_quick_data(request, user_id, spraywall_id):
             else:
                 projects_count += 1
             total_sends_count += boulder.sends_count
-        boulders_section_quick_data[4]['data'] = established_count + projects_count
+        boulders_section_quick_data[3]['data'] = established_count + projects_count
 
         # likes count
         boulders = Boulder.objects.filter(spraywall=spraywall_id)
@@ -66,7 +77,7 @@ def profile_quick_data(request, user_id, spraywall_id):
             liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
             if liked_row.exists():
                 likes_count += 1
-        boulders_section_quick_data[2]['data'] = likes_count
+        boulders_section_quick_data[1]['data'] = likes_count
 
         # bookmarks count
         boulders = Boulder.objects.filter(spraywall=spraywall_id)
@@ -75,19 +86,20 @@ def profile_quick_data(request, user_id, spraywall_id):
             bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
             if bookmarked_row.exists():
                 bookmarks_count += 1
-        boulders_section_quick_data[3]['data'] = bookmarks_count
+        boulders_section_quick_data[2]['data'] = bookmarks_count
 
         data = {
-            'bouldersSectionQuickData': boulders_section_quick_data
+            'bouldersSectionQuickData': boulders_section_quick_data,
+            'statsSectionQuickData': stats_section_quick_data,
         }
 
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
 
+# not need??????
 @api_view(['GET'])
 def profile(request, user_id, spraywall_id):
     if request.method == 'GET':
         section = request.GET.get('section', '').lower()
-        print(section)
         if section == 'logbook':
             boulders = Boulder.objects.filter(spraywall=spraywall_id)
             # get the total count of user's successful climbs
@@ -473,16 +485,43 @@ def update_user_gym(request, user_id):
             user_serializer.save()
             return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
 
-# @api_view(['PUT'])
-# def update_user_gym(request, user_id):
-#     try:
-#         user = Person.objects.get(id=user_id)
-#     except Person.DoesNotExist:
-#         raise Http404("User not found")
+@api_view(['GET'])
+def profile_stats_section(request, user_id, spraywall_id):
+    if request.method == 'GET':
+        section = request.GET.get('section', '').lower()
+        boulders = []
+        if section == 'top grade':
+            # Get the maximum grade for the user and spraywall_id
+            top_grade = Boulder.objects.filter(
+                send__person=user_id, spraywall_id=spraywall_id
+            ).aggregate(Max('grade'))['grade__max']
+            # Get all boulders containing that top grade (could be one or more)
+            if top_grade:
+                boulders = Boulder.objects.filter(send__person=user_id, spraywall_id=spraywall_id, grade=top_grade).distinct()
+        elif section == 'flashes':
+            sent_boulders = Boulder.objects.filter(send__person=user_id, spraywall=spraywall_id).distinct()
+            for boulder in sent_boulders:
+                send_row = Send.objects.filter(boulder=boulder.id).first()
+                if send_row.attempts == 1:
+                    boulders.append(boulder)
+        data = get_boulder_data(boulders, user_id, spraywall_id)
+        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+    
+# boulder bar chart data for grades and sends count
+# grade_counts = Boulder.objects.filter(send__person=user_id, spraywall_id=spraywall_id).values('grade').annotate(count=Count('grade')).order_by('grade')
+#         for item in grade_counts:
+#             for boulder in boulders_bar_chart_data:
+#                 if boulder['x'] == item['grade']:
+#                     boulder['y'] = item['count']
+#                     break
+#         data = {
+#             'bouldersBarChartData': boulders_bar_chart_data,
+#         }
 
-#     if request.method == 'PUT':
-#         user_serializer = PersonSerializer(instance=user, data=request.data, partial=True)
-#         if user_serializer.is_valid():
-#             user_serializer.save()
-#             return Response({'message': 'User gym ID updated successfully'}, status=status.HTTP_200_OK)
-#         return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# boulders = Boulder.objects.filter(send__person=user_id, spraywall=spraywall_id)
+#             flashes = 0
+#             for boulder in boulders:
+#                 send_row = Send.objects.filter(boulder=boulder.id).first()
+#                 if send_row.attempts == 1:
+#                     flashes += 1

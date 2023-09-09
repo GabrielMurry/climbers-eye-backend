@@ -85,7 +85,7 @@ def logbook_list(request, spraywall_id, user_id):
         # get all logged boulders (sent boulders) on the specified spraywall
         boulders = []
         if section == 'logbook':
-            boulders = Boulder.objects.filter(send__person=user_id, spraywall_id=spraywall_id)
+            boulders = Boulder.objects.filter(send__person=user_id, spraywall_id=spraywall_id).distinct() # distinct() because a user can log their send of the same boulder multiple times (repeated ascents). We only want unique boulders in the list of sends
         elif section == 'likes':
             boulders = Boulder.objects.filter(like__person=user_id, spraywall_id=spraywall_id)
         elif section == 'bookmarks':
@@ -148,10 +148,13 @@ def bookmark_boulder(request, boulder_id, user_id):
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
-def sent_boulder(request, boulder_id):
+def sent_boulder(request, user_id, boulder_id):
     if request.method == 'POST':
-        # post new row that details user's attempts, chosen difficulty, quality, and notes for a particular boulder
-        # update new info for the actual Boulder --> ?
+        # Check if a row with the given user and boulder ID already exists so we adjust activity action accordingly
+        existing_send = Send.objects.filter(person=user_id, boulder=boulder_id).first()
+        action = 'sent'
+        if existing_send:
+            action = 'repeated'
         send_serializer = SendSerializer(data=request.data)
         if send_serializer.is_valid():
             send_instance = send_serializer.save()
@@ -163,7 +166,7 @@ def sent_boulder(request, boulder_id):
                 person = Person.objects.get(id=request.data.get('person'))
                 boulder.first_ascent_person = person
             boulder.save()
-            add_activity('send', send_instance.id, 'sent', send_instance.boulder.name, send_instance.grade, send_instance.boulder.spraywall.id, send_instance.person.id)
+            add_activity('send', send_instance.id, action, send_instance.boulder.name, send_instance.grade, send_instance.boulder.spraywall.id, send_instance.person.id)
             return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
         else:
             print(send_serializer.errors)
@@ -175,6 +178,7 @@ def updated_boulder_data(request, boulder_id, user_id):
         boulder = Boulder.objects.get(id=boulder_id)
         # check if user sent the boulder
         sent_row = Send.objects.filter(person=user_id, boulder=boulder_id)
+        user_sends_count = len(sent_row)
         sent_boulder = False
         if sent_row.exists():
             sent_boulder = True
@@ -200,7 +204,8 @@ def updated_boulder_data(request, boulder_id, user_id):
             'isSent': sent_boulder,
             'isLiked': liked_boulder,
             'isBookmarked': bookmarked_boulder,
-            'inCircuit': inCircuit
+            'inCircuit': inCircuit,
+            'userSendsCount': user_sends_count,
         }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     

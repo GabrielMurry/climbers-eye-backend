@@ -4,7 +4,7 @@ from spray_backend.serializers import GymSerializer, SprayWallSerializer, Boulde
 from rest_framework.response import Response
 from django.middleware.csrf import get_token
 from rest_framework import status
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Max
 from django.contrib.auth import authenticate, login, logout
 from spray_backend.models import Gym, SprayWall, Person, Boulder, Like, Send, Circuit, Bookmark, Activity
 from PIL import Image, ImageEnhance
@@ -199,6 +199,7 @@ def get_boulder_data(boulders, user_id, spraywall_id):
         if bookmarked_row.exists():
             bookmarked_boulder = True
         sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
+        user_sends_count = len(sent_row)
         sent_boulder = False
         if sent_row.exists():
             sent_boulder = True
@@ -231,6 +232,7 @@ def get_boulder_data(boulders, user_id, spraywall_id):
             'isBookmarked': bookmarked_boulder,
             'isSent': sent_boulder,
             'inCircuit': in_circuit,
+            'userSendsCount': user_sends_count,
             'date': formatted_date,
         })
     return data

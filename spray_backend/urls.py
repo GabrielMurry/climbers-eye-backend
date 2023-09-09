@@ -41,7 +41,7 @@ urlpatterns = [
     path('add_boulder/<int:spraywall_id>/<int:user_id>', boulder.add_boulder), # boulder
     path('like_boulder/<int:boulder_id>/<int:user_id>', boulder.like_boulder), # boulder
     path('bookmark_boulder/<int:boulder_id>/<int:user_id>', boulder.bookmark_boulder), # boulder
-    path('sent_boulder/<int:boulder_id>', boulder.sent_boulder), # boulder
+    path('sent_boulder/<int:user_id>/<int:boulder_id>', boulder.sent_boulder), # boulder
     path('updated_boulder_data/<int:boulder_id>/<int:user_id>', boulder.updated_boulder_data), # boulder
     path('delete_boulder/<int:boulder_id>', boulder.delete_boulder), # boulder
     path('add_or_remove_boulder_in_circuit/<int:circuit_id>/<int:boulder_id>', boulder.add_or_remove_boulder_in_circuit), # boulder
@@ -60,6 +60,7 @@ urlpatterns = [
     path('edit_user_info/<int:user_id>', profile.edit_user_info), # profile
     path('update_user_gym/<int:user_id>', profile.update_user_gym), # profile
     path('get_user_circuits/<int:user_id>/<int:spraywall_id>', profile.get_user_circuits), # profile
+    path('profile_stats_section/<int:user_id>/<int:spraywall_id>', profile.profile_stats_section), # profile
     path('user_activity/<int:user_id>/<int:gym_id>', activity.user_activity), # activity
 ]
 
