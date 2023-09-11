@@ -4,16 +4,19 @@ from spray_backend.serializers import GymSerializer, SprayWallSerializer, Boulde
 from rest_framework.response import Response
 from django.middleware.csrf import get_token
 from rest_framework import status
+import copy
 from django.db.models import Q, Count, Max
 from django.contrib.auth import authenticate, login, logout
 from spray_backend.models import Gym, SprayWall, Person, Boulder, Like, Send, Circuit, Bookmark, Activity
 from PIL import Image, ImageEnhance
-from spray_backend.utils.constants import boulder_grades, boulders_bar_chart_data, colors
+from spray_backend.utils.constants import boulder_grades, boulders_bar_chart_data_template, colors
 from io import BytesIO
 import json
 import uuid
 import base64
 from django.utils.dateformat import DateFormat
+from collections import Counter
+import pytz
 from urllib.parse import urlparse
 import boto3
 from botocore.exceptions import NoCredentialsError
@@ -22,6 +25,9 @@ env = environ.Env()
 environ.Env.read_env()
 s3 = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
                   aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'))
+
+# Define the PST timezone
+pst_timezone = pytz.timezone('America/Los_Angeles')  # 'America/Los_Angeles' corresponds to Pacific Standard Time (PST)
 
 def get_spraywalls(gym_id):
     spraywalls = SprayWall.objects.filter(gym__id=gym_id) # gym__id is used to specify the filter condition. It indicates that you want to filter the SprayWall objects based on the id of the related gym object.
@@ -186,34 +192,37 @@ def filter_by_grades(boulders, min_grade_index, max_grade_index):
             new_boulders.append(boulder)
     return new_boulders
 
-# IMPROVE
-def get_boulder_data(boulders, user_id, spraywall_id):
+def get_boulder_data(boulders, user_id, spraywall_id, sessions=None, formatted_send_dates=None):
     data = []
-    for boulder in boulders:
-        liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
-        liked_boulder = False
-        if liked_row.exists():
-            liked_boulder = True
-        bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
-        bookmarked_boulder = False
-        if bookmarked_row.exists():
-            bookmarked_boulder = True
-        sent_row = Send.objects.filter(person=user_id, boulder=boulder.id)
-        user_sends_count = len(sent_row)
-        sent_boulder = False
-        if sent_row.exists():
-            sent_boulder = True
-        # if particular boulder is in at least one of user's circuit in this particular spraywall
-        circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
-        in_circuit = False
-        for circuit in circuits:
-            boulder_is_in_circuit = circuit.boulders.filter(pk=boulder.id)
-            if boulder_is_in_circuit.exists():
-                in_circuit = True
-                break
+
+    # Query all liked, bookmarked, and sent boulders for the user at once
+    # Reducing the number of database queries by using values_list and sets to check liked, bookmarked, and sent boulders for the user.
+    liked_boulders = set(Like.objects.filter(person=user_id, boulder_id__in=[b.id for b in boulders]).values_list('boulder_id', flat=True))
+    bookmarked_boulders = set(Bookmark.objects.filter(person=user_id, boulder_id__in=[b.id for b in boulders]).values_list('boulder_id', flat=True))
+    sent_boulders = set(Send.objects.filter(person=user_id, boulder_id__in=[b.id for b in boulders]).values_list('boulder_id', flat=True))
+
+    # Query all circuits for the user at once
+    user_circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+
+    for index, boulder in enumerate(boulders):
         formatted_date = DateFormat(boulder.date_created).format('F j, Y')
+        
+        # Count user sends for the current boulder
+        user_sends_count = boulder.send_set.filter(person=user_id).count()
+
+        # Check if the boulder is in any of the user's circuits
+        in_circuit = any(circuit.boulders.filter(pk=boulder.id).exists() for circuit in user_circuits)
+
+        session = {'num': None, 'date': None}
+        if sessions:
+            if index > 0 and formatted_send_dates[index] != formatted_send_dates[index - 1]:
+                sessions -= 1
+            session['num'] = sessions
+            session['date'] = formatted_send_dates[index]
+
         data.append({
             'id': boulder.id, 
+            'uuid': uuid.uuid4(),
             'name': boulder.name, 
             'description': boulder.description, 
             'url': boulder.boulder_image_url,
@@ -228,13 +237,15 @@ def get_boulder_data(boulders, user_id, spraywall_id):
             'sends': boulder.sends_count, 
             'grade': boulder.grade, 
             'quality': boulder.quality, 
-            'isLiked': liked_boulder,
-            'isBookmarked': bookmarked_boulder,
-            'isSent': sent_boulder,
+            'isLiked': boulder.id in liked_boulders,
+            'isBookmarked': boulder.id in bookmarked_boulders,
+            'isSent': boulder.id in sent_boulders,
             'inCircuit': in_circuit,
             'userSendsCount': user_sends_count,
             'date': formatted_date,
+            'session': session,
         })
+
     return data
 
 def add_activity(model_name, model_id, action, item, other_info, spraywall, user):

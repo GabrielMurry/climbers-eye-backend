@@ -25,7 +25,7 @@ boulder_grades = {
     '8c+/V16': 23
 }
 
-boulders_bar_chart_data = [
+boulders_bar_chart_data_template = [
     {'x': '4a/V0', 'y': 0},
     {'x': '4b/V0', 'y': 0},
     {'x': '4c/V0', 'y': 0},

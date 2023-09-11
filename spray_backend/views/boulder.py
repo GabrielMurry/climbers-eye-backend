@@ -84,8 +84,44 @@ def logbook_list(request, spraywall_id, user_id):
         search_query, sort_by, min_grade_index, max_grade_index, circuits, climb_type, filter_status = get_filter_queries(request)
         # get all logged boulders (sent boulders) on the specified spraywall
         boulders = []
+        # Create a deep copy of the template to initialize boulders_bar_chart_data
+        # get boulders bar chart data for logbook
+        boulders_bar_chart_data = copy.deepcopy(boulders_bar_chart_data_template)
+        grade_counts = (
+            Boulder.objects
+            .filter(send__person=user_id, spraywall_id=spraywall_id)
+            .values('grade')
+            .annotate(count=Count('grade'))
+            .order_by('grade')
+        )
+        for item in grade_counts:
+            for boulder_chart in boulders_bar_chart_data:
+                if boulder_chart['x'] == item['grade']:
+                    boulder_chart['y'] = item['count']
+                    break
+        # formatted send dates for logbook
+        formatted_send_dates = []
+        # sessions for logbook
+        sessions = None
         if section == 'logbook':
-            boulders = Boulder.objects.filter(send__person=user_id, spraywall_id=spraywall_id).distinct() # distinct() because a user can log their send of the same boulder multiple times (repeated ascents). We only want unique boulders in the list of sends
+            # Fetch sent boulders and their send dates
+            sent_boulders = (
+                Send.objects
+                .filter(person__id=user_id, boulder__spraywall__id=spraywall_id)
+                .select_related('boulder')
+                .order_by('-date_created')
+                .prefetch_related('boulder__send_set')  # Prefetch related sends for boulders
+            )
+            # Extract boulders and formatted send dates using list comprehensions
+            boulders = [sent_boulder.boulder for sent_boulder in sent_boulders]
+            # Extract boulders and format send dates in PST
+            # set to pacific standard time. pst_timezone set in __init__.py file
+            formatted_send_dates = [
+                sent_boulder.date_created.astimezone(pst_timezone).strftime('%B %d, %Y')
+                for sent_boulder in sent_boulders
+            ]
+            # Calculate the number of sessions using Counter. Counter is more efficient than converting the list to a set and then calculating the length because it avoids the overhead of creating a temporary set and uses a specialized data structure designed for counting occurrences.
+            sessions = len(Counter(formatted_send_dates))
         elif section == 'likes':
             boulders = Boulder.objects.filter(like__person=user_id, spraywall_id=spraywall_id)
         elif section == 'bookmarks':
@@ -94,12 +130,15 @@ def logbook_list(request, spraywall_id, user_id):
             boulders = Boulder.objects.filter(setter_person=user_id, spraywall_id=spraywall_id)
         # Filter
         boulders = filter_by_search_query(boulders, search_query)
-        boulders = filter_by_circuits(boulders, circuits)
-        boulders = filter_by_sort_by(boulders, sort_by, user_id)
-        boulders = filter_by_status(boulders, filter_status, user_id)
-        boulders = filter_by_grades(boulders, min_grade_index, max_grade_index)
+        # boulders = filter_by_circuits(boulders, circuits)
+        # boulders = filter_by_sort_by(boulders, sort_by, user_id)
+        # boulders = filter_by_status(boulders, filter_status, user_id)
+        # boulders = filter_by_grades(boulders, min_grade_index, max_grade_index)
         # get everything except image data, image width, image height --> image data takes very long to load especially when grabbing every single boulder
-        data = get_boulder_data(boulders, user_id, spraywall_id)
+        data = {
+            'section': get_boulder_data(boulders, user_id, spraywall_id, sessions, formatted_send_dates),
+            'bouldersBarChartData': boulders_bar_chart_data,
+        }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['POST', 'DELETE'])
@@ -206,6 +245,7 @@ def updated_boulder_data(request, boulder_id, user_id):
             'isBookmarked': bookmarked_boulder,
             'inCircuit': inCircuit,
             'userSendsCount': user_sends_count,
+            'sends': boulder.sends_count, 
         }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     
@@ -286,6 +326,8 @@ def boulder_stats(request, boulder_id):
             .annotate(count=Count('grade'))
             .order_by('grade')
         )
+        # Create a deep copy of the template to initialize boulders_bar_chart_data
+        boulders_bar_chart_data = copy.deepcopy(boulders_bar_chart_data_template)
         is_project = True
         for item in grade_counts:
             for boulder in boulders_bar_chart_data:
@@ -294,20 +336,19 @@ def boulder_stats(request, boulder_id):
                     is_project = False
                     break
         # result = [{'grade': item['grade'], 'count': item['count']} for item in grade_counts]
-        boulders_pie_chart_data = None
-        if not is_project:
-            totalGradersPie = sum(boulder['y'] for boulder in boulders_bar_chart_data)
-            bouldersWithPercentagePie = [
-                {**boulder, 'percentage': (boulder['y'] / totalGradersPie) * 100}
-                for boulder in boulders_bar_chart_data if boulder['y'] > 0
-            ]
-            boulders_pie_chart_data = sorted(bouldersWithPercentagePie, key=lambda x: x['percentage'], reverse=True)
-            # for pie data, I need to change properties 'x' to 'label' and 'y' to 'value', keep percentage
-            boulders_pie_chart_data = [{'label': obj['x'], 'value': obj['y'], 'percentage': obj['percentage'], 'color': colors[idx]} for idx, obj in enumerate(boulders_pie_chart_data)]
-            print(boulders_pie_chart_data)
+        # boulders_pie_chart_data = None
+        # if not is_project:
+        #     totalGradersPie = sum(boulder['y'] for boulder in boulders_bar_chart_data)
+        #     bouldersWithPercentagePie = [
+        #         {**boulder, 'percentage': (boulder['y'] / totalGradersPie) * 100}
+        #         for boulder in boulders_bar_chart_data if boulder['y'] > 0
+        #     ]
+        #     boulders_pie_chart_data = sorted(bouldersWithPercentagePie, key=lambda x: x['percentage'], reverse=True)
+        #     # for pie data, I need to change properties 'x' to 'label' and 'y' to 'value', keep percentage
+        #     boulders_pie_chart_data = [{'label': obj['x'], 'value': obj['y'], 'percentage': obj['percentage'], 'color': colors[idx]} for idx, obj in enumerate(boulders_pie_chart_data)]
         data = {
             'bouldersBarChartData': boulders_bar_chart_data,
-            'bouldersPieChartData': boulders_pie_chart_data,
+            # 'bouldersPieChartData': boulders_pie_chart_data,
             'isProject': is_project
         }
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
