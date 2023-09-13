@@ -23,10 +23,6 @@ def profile_quick_data(request, user_id, spraywall_id):
         ]
         stats_section_quick_data = [
             {
-                'title': 'Sessions',
-                'data': 0
-            },
-            {
                 'title': 'Top Grade',
                 'data': '-'
             },
@@ -44,7 +40,7 @@ def profile_quick_data(request, user_id, spraywall_id):
         top_grade_obj = boulders.aggregate(Max('grade'))
         top_grade = top_grade_obj['grade__max'] if top_grade_obj['grade__max'] else '4a/V0'
         # insert into object data
-        stats_section_quick_data[1]['data'] = top_grade
+        stats_section_quick_data[0]['data'] = top_grade
         boulders_section_quick_data[0]['data'] = sends_count
         # Total count of flashes
         flashes = 0
@@ -54,7 +50,7 @@ def profile_quick_data(request, user_id, spraywall_id):
             if send_row.attempts == 1:
                 flashes += 1
         # insert into object data
-        stats_section_quick_data[2]['data'] = flashes
+        stats_section_quick_data[1]['data'] = flashes
         
         # creations count
         boulders = Boulder.objects.filter(spraywall=spraywall_id, setter_person=user_id)
