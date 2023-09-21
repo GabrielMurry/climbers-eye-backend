@@ -1,21 +1,12 @@
-from . import * 
+from spray_backend.utils.common_imports import *
+from spray_backend.utils.circuit import *
 
 @api_view(['GET', 'POST'])
 def circuits(request, user_id, spraywall_id, boulder_id):
     if request.method == 'GET':
         # get all circuits associated to that particular user and spraywall
         circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
-        data = []
-        for circuit in circuits:
-            boulder_is_in_circuit = circuit.boulders.filter(pk=boulder_id).exists()
-            data.append({
-                'id': circuit.id,
-                'name': circuit.name,
-                'description': circuit.description,
-                'color': circuit.color,
-                'private': circuit.private,
-                'isSelected': boulder_is_in_circuit
-            })
+        data = get_circuit_list_data(circuits, boulder_id)
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
     if request.method == 'POST':
         # adding a new circuit (brand new circuits don't initially contain any boulders)
@@ -46,13 +37,5 @@ def filter_circuits(request, user_id, spraywall_id):
     if request.method == 'GET':
         # get all circuits associated to that particular user and spraywall
         circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
-        data = []
-        for circuit in circuits:
-            data.append({
-                'id': circuit.id,
-                'name': circuit.name,
-                'description': circuit.description,
-                'color': circuit.color,
-                'private': circuit.private,
-            })
+        data = get_circuit_list_data(circuits)
         return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)

@@ -1,4 +1,5 @@
-from . import *
+from spray_backend.utils.common_imports import *
+from spray_backend.utils.common_functions import *
 
 @api_view(['GET', 'POST'])
 def spraywall(request):

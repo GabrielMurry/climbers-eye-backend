@@ -53,3 +53,33 @@ boulders_bar_chart_data_template = [
 ]
 
 colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe']   
+
+boulders_section_quick_data_template = [
+    {
+        'title': 'Logbook',
+        'data': 0
+    },
+    {
+        'title': 'Likes',
+        'data': 0
+    },
+    {
+        'title': 'Bookmarks',
+        'data': 0
+    },
+    {
+        'title': 'Creations',
+        'data': 0
+    },
+]
+
+stats_section_quick_data_template = [
+    {
+        'title': 'Top Grade',
+        'data': '-'
+    },
+    {
+        'title': 'Flashes',
+        'data': 0
+    },
+]
