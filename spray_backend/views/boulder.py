@@ -18,7 +18,7 @@ def composite(request):
 def add_boulder(request, spraywall_id, user_id):
     if request.method == 'POST':
         boulder = request.data
-        boulder_data = initialize_new_boulder_data(boulder, user_id, spraywall_id)
+        boulder_data = prepare_new_boulder_data(boulder, user_id, spraywall_id)
         # using the boulder data, we create a brand new Boulder row in Boulder table
         boulder_serializer = BoulderSerializer(data=boulder_data)
         if boulder_serializer.is_valid():

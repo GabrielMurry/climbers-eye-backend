@@ -121,7 +121,7 @@ def filter_by_grades(boulders, min_grade_index, max_grade_index):
             new_boulders.append(boulder)
     return new_boulders
 
-def initialize_new_boulder_data(boulder, user_id, spraywall_id):
+def prepare_new_boulder_data(boulder, user_id, spraywall_id):
     return {
         'name': boulder['name'],
         'description': boulder['description'],

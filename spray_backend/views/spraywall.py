@@ -1,18 +1,6 @@
 from spray_backend.utils.common_imports import *
 from spray_backend.utils.common_functions import *
-
-@api_view(['GET', 'POST'])
-def spraywall(request):
-    if request.method == 'POST':
-        serializer = SprayWallSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            # pass data back in response
-            return Response('hi')
-    if request.method == 'GET':
-        queryset = SprayWall.objects.filter(id=2)
-        serializer = SprayWallSerializer(queryset, many=True)
-        return Response(serializer.data)
+from spray_backend.utils.spraywall import *
     
 @api_view(['GET'])
 def queried_gym_spraywall(request, gym_id):
@@ -27,17 +15,10 @@ def queried_gym_spraywall(request, gym_id):
 @api_view(['POST'])
 def add_new_spraywall(request, gym_id):
     if request.method == 'POST':
-        # Add New Spray Wall
         spraywall = request.data
-        image_url = s3_image_url(spraywall['image_data'])
-        spraywall_data = {
-            'name': spraywall['name'],
-            'spraywall_image_url': image_url,
-            'spraywall_image_width': spraywall['image_width'],
-            'spraywall_image_height': spraywall['image_height'],
-            'gym': gym_id,
-        }
+        spraywall_data = prepare_new_spraywall_data(spraywall, gym_id)
         spraywall_serializer = SprayWallSerializer(data=spraywall_data)
+
         if spraywall_serializer.is_valid():
             spraywall_serializer.save()
             spraywalls = get_spraywalls(gym_id)

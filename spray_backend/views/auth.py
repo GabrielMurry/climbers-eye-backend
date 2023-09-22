@@ -46,7 +46,8 @@ def login_user(request):
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         
-@api_view(['GET'])
+@api_view(['POST'])  # Use POST method for logout
 def logout_user(request):
-    logout(request)
-    return Response('logged out')
+    if request.method == 'POST':
+        logout(request)
+        return Response({'data': 'Logged out successfully'}, status=status.HTTP_200_OK)

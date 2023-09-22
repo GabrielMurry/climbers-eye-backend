@@ -31,7 +31,6 @@ urlpatterns = [
     path('edit_gym/<int:gym_id>', gym.edit_gym), # gym
     path('choose_gym/<int:user_id>/<int:gym_id>', gym.choose_gym), # gym
     path('delete_gym/<int:gym_id>', gym.delete_gym), # gym
-    path('spraywall/', spraywall.spraywall), # spraywall
     path('queried_gym_spraywall/<int:gym_id>', spraywall.queried_gym_spraywall), # spraywall
     path('add_new_spraywall/<int:gym_id>', spraywall.add_new_spraywall), # spraywall
     path('delete_spraywall/<int:spraywall_id>', spraywall.delete_spraywall), # spraywall
