@@ -5,9 +5,9 @@ from spray_backend.forms import CreateUserForm
 from spray_backend.utils.auth import *
 
 @api_view(['GET'])
-def csrf_token_view(request):
+def temp_csrf_token(request):
     if request.method == 'GET':
-        return Response({'csrfToken': get_token(request)})
+        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def signup_user(request):
@@ -50,4 +50,4 @@ def login_user(request):
 def logout_user(request):
     if request.method == 'POST':
         logout(request)
-        return Response({'data': 'Logged out successfully'}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)

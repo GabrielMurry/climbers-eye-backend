@@ -16,4 +16,4 @@ def user_activity(request, user_id, gym_id):
         data = {
             'activityData': activity_data
         }
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)

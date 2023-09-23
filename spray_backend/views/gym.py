@@ -12,7 +12,7 @@ def add_gym(request, user_id):
         spraywall_instance = create_spraywall(spraywall_data, gym_instance)
         update_person_data(user_id, gym_instance, spraywall_instance)
 
-        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def query_gyms(request):
@@ -23,7 +23,7 @@ def query_gyms(request):
         data = []
         for gym in gyms:
             data.append(get_gym_data(gym))
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['PUT'])
 def choose_gym(request, user_id, gym_id):
@@ -42,7 +42,7 @@ def choose_gym(request, user_id, gym_id):
                 'gym': get_gym_data(person_updated.gym),
                 'spraywalls': get_spraywalls(gym_id),
             }
-            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+            return Response({'data': data}, status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
 
@@ -56,7 +56,7 @@ def edit_gym(request, gym_id):
             data = {
                 'gym': get_gym_data(gym_instance)
             }
-            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+            return Response({'data': data}, status=status.HTTP_200_OK)
         else:
             print(gym_serializer.errors)
 
@@ -65,4 +65,4 @@ def delete_gym(request, gym_id):
     if request.method == 'DELETE':
         gym_row = Gym.objects.get(id=gym_id)
         delete_gym_data(gym_row)
-        return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)

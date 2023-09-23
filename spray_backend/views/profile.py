@@ -66,7 +66,7 @@ def profile_quick_data(request, user_id, spraywall_id):
             'statsSectionQuickData': stats_section_quick_data,
         }
 
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def get_user_circuits(request, user_id, spraywall_id):
@@ -91,7 +91,7 @@ def get_user_circuits(request, user_id, spraywall_id):
         data = {
             'circuitsData': circuits_data,
         }
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
 def add_profile_banner_image(request, user_id):
@@ -100,7 +100,7 @@ def add_profile_banner_image(request, user_id):
         person_serializer = PersonSerializer(instance=person, data=request.data, partial=True)
         if person_serializer.is_valid():
             person_serializer.save()
-            return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
 
@@ -184,7 +184,7 @@ def get_all_user_gyms(request, user_id):
         data = {
             'all_gyms_data': gyms
         }
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def edit_headshot(request, user_id):
@@ -219,7 +219,7 @@ def edit_headshot(request, user_id):
             data = {
                 'headshotImage': headshot_image
             }
-            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+            return Response({'data': data}, status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
 
@@ -239,7 +239,7 @@ def edit_user_info(request, user_id):
             data = {
                 'user': user
             }
-            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+            return Response({'data': data}, status=status.HTTP_200_OK)
         else:
             print(user_serializer.errors)
 
@@ -250,7 +250,7 @@ def update_user_gym(request, user_id):
         user_serializer = PersonSerializer(instance=user, data=request.data, partial=True)
         if user_serializer.is_valid():
             user_serializer.save()
-            return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def profile_stats_section(request, user_id, spraywall_id):
@@ -274,7 +274,7 @@ def profile_stats_section(request, user_id, spraywall_id):
         data = []
         for boulder in boulders:
             data.append(get_boulder_data(boulder, user_id))
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def profile_boulder_section_list(request, spraywall_id, user_id):
@@ -296,4 +296,4 @@ def profile_boulder_section_list(request, spraywall_id, user_id):
             'section': boulders,
             'bouldersBarChartData': boulders_bar_chart_data,
         }
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)

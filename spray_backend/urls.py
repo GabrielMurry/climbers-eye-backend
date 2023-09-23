@@ -21,8 +21,8 @@ from django.conf import settings
 from spray_backend.views import auth, boulder, circuit, gym, profile, spraywall, activity
 
 urlpatterns = [
-    path('admin/', admin.site.urls), # auth
-    path('csrf_token/', auth.csrf_token_view),
+    path('admin/', admin.site.urls),
+    path('temp_csrf_token/', auth.temp_csrf_token), # auth
     path('login/', auth.login_user), # auth
     path('signup/', auth.signup_user), # auth
     path('logout/', auth.logout_user), # auth

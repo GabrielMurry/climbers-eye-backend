@@ -10,7 +10,7 @@ def queried_gym_spraywall(request, gym_id):
         data = {
             'spraywalls': spraywalls
         }
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
 def add_new_spraywall(request, gym_id):
@@ -25,7 +25,7 @@ def add_new_spraywall(request, gym_id):
             data = {
                 'spraywalls': spraywalls
             }
-            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+            return Response({'data': data}, status=status.HTTP_200_OK)
         else:
             print(spraywall_serializer.errors)
 
@@ -43,7 +43,7 @@ def delete_spraywall(request, spraywall_id):
         data = {
             'spraywalls': spraywalls
         }
-        return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+        return Response({'data': data}, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
 def edit_spraywall(request, spraywall_id):
@@ -57,6 +57,6 @@ def edit_spraywall(request, spraywall_id):
             data = {
                 'spraywalls': spraywalls
             }
-            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+            return Response({'data': data}, status=status.HTTP_200_OK)
         else:
             print(spraywall_serializer.errors)
