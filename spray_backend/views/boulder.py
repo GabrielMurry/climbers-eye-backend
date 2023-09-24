@@ -12,7 +12,7 @@ def composite(request):
     data = {
         'uri': result_uri
     }
-    return Response({'data': data}, status=status.HTTP_200_OK)
+    return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def add_boulder(request, spraywall_id, user_id):
@@ -26,7 +26,7 @@ def add_boulder(request, spraywall_id, user_id):
             boulder = Boulder.objects.get(id=boulder_instance.id)
             data = get_boulder_data(boulder, user_id)
             add_activity('boulder', boulder.id, 'created', boulder.name, None, spraywall_id, user_id)
-            return Response({'data': data}, status=status.HTTP_200_OK)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             print(boulder_serializer.errors)
 
@@ -47,7 +47,7 @@ def list(request, spraywall_id, user_id):
         data = []
         for boulder in boulders:
             data.append(get_boulder_data(boulder, user_id))
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     
 @api_view(['POST', 'DELETE'])
 def like_boulder(request, boulder_id, user_id):
@@ -60,7 +60,7 @@ def like_boulder(request, boulder_id, user_id):
                 'isLiked': True
             }
             add_activity('like', like_instance.id, 'liked', like_instance.boulder.name, like_instance.boulder.grade, like_instance.boulder.spraywall.id, user_id)
-            return Response({'data': data}, status=status.HTTP_200_OK)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             print(like_serializer.errors)
     if request.method == 'DELETE':
@@ -70,7 +70,7 @@ def like_boulder(request, boulder_id, user_id):
         data = {
             'isLiked': False
         }
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     
 @api_view(['POST', 'DELETE'])
 def bookmark_boulder(request, boulder_id, user_id):
@@ -83,7 +83,7 @@ def bookmark_boulder(request, boulder_id, user_id):
                 'isBookmarked': True
             }
             add_activity('bookmark', bookmark_instance.id, 'bookmarked', bookmark_instance.boulder.name, bookmark_instance.boulder.grade, bookmark_instance.boulder.spraywall.id, user_id)
-            return Response({'data': data}, status=status.HTTP_200_OK)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             print(bookmark_serializer.errors)
     if request.method == 'DELETE':
@@ -92,7 +92,7 @@ def bookmark_boulder(request, boulder_id, user_id):
         data = {
             'isBookmarked': False
         }
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
 def sent_boulder(request, user_id, boulder_id):
@@ -124,7 +124,7 @@ def updated_boulder_data(request, boulder_id, user_id):
         # get the updated data for the boulder on the Boulder Screen
         boulder = Boulder.objects.get(id=boulder_id)
         data = get_boulder_data(boulder, user_id)
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     
 @api_view(['DELETE'])
 def delete_boulder(request, boulder_id):
@@ -160,7 +160,7 @@ def get_boulders_from_circuit(request, user_id, circuit_id):
         data = []
         for boulder in boulders:
             get_boulder_data(boulder, user_id)
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def boulder_stats(request, boulder_id):
@@ -200,4 +200,4 @@ def boulder_stats(request, boulder_id):
             # 'bouldersPieChartData': boulders_pie_chart_data,
             'isProject': is_project
         }
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)

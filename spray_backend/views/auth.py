@@ -19,9 +19,10 @@ def signup_user(request):
             if person_serializer.is_valid():
                 person_instance = person_serializer.save()
                 data = {
-                    'user': get_auth_user_data(person_instance)
+                    'csrfToken': get_token(request),
+                    'user': get_auth_user_data(person_instance),
                 }
-                return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+                return Response(data, status=status.HTTP_200_OK)
             else:
                 print(person_serializer.errors)
         else:
@@ -37,12 +38,13 @@ def login_user(request):
             login(request, user)
             person = Person.objects.get(username=username)
             data = {
+                'csrfToken': get_token(request),
                 'user': get_auth_user_data(person), 
                 'gym': get_auth_gym_data(person),
                 'spraywalls': get_auth_spraywalls_data(person), 
                 'headshotImage': get_auth_headshot_data(person),
             }
-            return Response({'csrfToken': get_token(request), 'data': data}, status=status.HTTP_200_OK)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         

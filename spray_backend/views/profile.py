@@ -6,67 +6,28 @@ from spray_backend.utils.constants import boulders_section_quick_data_template, 
 @api_view(['GET'])
 def profile_quick_data(request, user_id, spraywall_id):
     if request.method == 'GET':
-        # get copy of both quick data templates
+        # get copy of boulders section quick data template
         boulders_section_quick_data = copy.deepcopy(boulders_section_quick_data_template)
-        stats_section_quick_data = copy.deepcopy(stats_section_quick_data_template)
-        # logbook count (sends)
-        boulders = Boulder.objects.filter(send__person=user_id, spraywall=spraywall_id)
-        # Calculate the total count of user's successful climbs
-        sends_count = boulders.count()
-        # Find the top grade (hardest climbed grade difficulty)
-        top_grade_obj = boulders.aggregate(Max('grade'))
-        top_grade = top_grade_obj['grade__max'] if top_grade_obj['grade__max'] else '4a/V0'
-        # insert into object data
-        stats_section_quick_data[0]['data'] = top_grade
-        boulders_section_quick_data[0]['data'] = sends_count
-        # Total count of flashes
-        flashes = 0
-        sent_boulders = boulders.distinct()
-        for boulder in sent_boulders:
-            send_row = Send.objects.filter(boulder=boulder.id).first() # first uploaded boulder that the user ascended (not counting repeated ascents which were not uploaded first)
-            if send_row.attempts == 1:
-                flashes += 1
-        # insert into object data
-        stats_section_quick_data[1]['data'] = flashes
-        
-        # creations count
+        # logbook
+        sent_boulders = Boulder.objects.filter(send__person=user_id, spraywall=spraywall_id)
+        boulders_section_quick_data['Logbook'] = get_logbook_quick_data(sent_boulders)
+        # creations
         boulders = Boulder.objects.filter(spraywall=spraywall_id, setter_person=user_id)
-        # established count --> a published boulder with at least 1 send. NOT a project. 
-        established_count = 0
-        projects_count = 0
-        total_sends_count = 0
-        for boulder in boulders:
-            if boulder.sends_count > 0:
-                established_count += 1
-            else:
-                projects_count += 1
-            total_sends_count += boulder.sends_count
-        boulders_section_quick_data[3]['data'] = established_count + projects_count
-
+        boulders_section_quick_data['Creations'] = get_creations_quick_data(boulders)
         # likes count
-        boulders = Boulder.objects.filter(spraywall=spraywall_id)
-        likes_count = 0
-        for boulder in boulders:
-            liked_row = Like.objects.filter(person=user_id, boulder=boulder.id)
-            if liked_row.exists():
-                likes_count += 1
-        boulders_section_quick_data[1]['data'] = likes_count
-
+        boulders_section_quick_data['Likes'] = get_likes_quick_data(user_id, spraywall_id)
         # bookmarks count
-        boulders = Boulder.objects.filter(spraywall=spraywall_id)
-        bookmarks_count = 0
-        for boulder in boulders:
-            bookmarked_row = Bookmark.objects.filter(person=user_id, boulder=boulder.id)
-            if bookmarked_row.exists():
-                bookmarks_count += 1
-        boulders_section_quick_data[2]['data'] = bookmarks_count
+        boulders_section_quick_data['Bookmarks'] = get_bookmarks_quick_data(user_id, spraywall_id)
 
+        # get copy of stats section quick data template
+        stats_section_quick_data = copy.deepcopy(stats_section_quick_data_template)
+        stats_section_quick_data['Top Grade'] = get_top_grade_quick_data(sent_boulders)
+        stats_section_quick_data['Flashes'] = get_flashes_quick_data(sent_boulders)
         data = {
             'bouldersSectionQuickData': boulders_section_quick_data,
             'statsSectionQuickData': stats_section_quick_data,
         }
-
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def get_user_circuits(request, user_id, spraywall_id):
@@ -91,7 +52,7 @@ def get_user_circuits(request, user_id, spraywall_id):
         data = {
             'circuitsData': circuits_data,
         }
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     
 @api_view(['POST'])
 def add_profile_banner_image(request, user_id):
@@ -184,7 +145,7 @@ def get_all_user_gyms(request, user_id):
         data = {
             'all_gyms_data': gyms
         }
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def edit_headshot(request, user_id):
@@ -219,7 +180,7 @@ def edit_headshot(request, user_id):
             data = {
                 'headshotImage': headshot_image
             }
-            return Response({'data': data}, status=status.HTTP_200_OK)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
 
@@ -239,7 +200,7 @@ def edit_user_info(request, user_id):
             data = {
                 'user': user
             }
-            return Response({'data': data}, status=status.HTTP_200_OK)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             print(user_serializer.errors)
 
@@ -274,7 +235,7 @@ def profile_stats_section(request, user_id, spraywall_id):
         data = []
         for boulder in boulders:
             data.append(get_boulder_data(boulder, user_id))
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     
 @api_view(['GET'])
 def profile_boulder_section_list(request, spraywall_id, user_id):
@@ -296,4 +257,4 @@ def profile_boulder_section_list(request, spraywall_id, user_id):
             'section': boulders,
             'bouldersBarChartData': boulders_bar_chart_data,
         }
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)

@@ -16,4 +16,4 @@ def user_activity(request, user_id, gym_id):
         data = {
             'activityData': activity_data
         }
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)

@@ -23,7 +23,7 @@ def query_gyms(request):
         data = []
         for gym in gyms:
             data.append(get_gym_data(gym))
-        return Response({'data': data}, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
     
 @api_view(['PUT'])
 def choose_gym(request, user_id, gym_id):
@@ -42,7 +42,7 @@ def choose_gym(request, user_id, gym_id):
                 'gym': get_gym_data(person_updated.gym),
                 'spraywalls': get_spraywalls(gym_id),
             }
-            return Response({'data': data}, status=status.HTTP_200_OK)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             print(person_serializer.errors)
 
@@ -56,7 +56,7 @@ def edit_gym(request, gym_id):
             data = {
                 'gym': get_gym_data(gym_instance)
             }
-            return Response({'data': data}, status=status.HTTP_200_OK)
+            return Response(data, status=status.HTTP_200_OK)
         else:
             print(gym_serializer.errors)
 

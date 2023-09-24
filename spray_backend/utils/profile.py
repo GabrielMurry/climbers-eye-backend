@@ -77,3 +77,33 @@ def get_section_boulders(section, user_id, spraywall_id):
     for boulder in boulders:
         DATA.append(get_boulder_data(boulder, user_id))
     return DATA
+
+def get_logbook_quick_data(boulders):
+    # Calculate the total count of user's successful climbs
+    return boulders.count()
+
+def get_creations_quick_data(boulders):
+    return boulders.count()
+
+def get_likes_quick_data(user_id, spraywall_id):
+    # We use filter to filter likes based on the user's person and the spraywall associated with the boulders.
+    # We use aggregate to count the number of likes that match the filter criteria. The result is stored in the id__count field of the aggregation result.
+    return Like.objects.filter(person=user_id, boulder__spraywall=spraywall_id).count()
+
+def get_bookmarks_quick_data(user_id, spraywall_id):
+    return Bookmark.objects.filter(person=user_id, boulder__spraywall=spraywall_id).count()
+
+def get_top_grade_quick_data(boulders):
+    # Find the top grade (hardest climbed grade difficulty)
+    top_grade_obj = boulders.aggregate(Max('grade'))
+    return top_grade_obj['grade__max'] if top_grade_obj['grade__max'] else '4a/V0'
+
+def get_flashes_quick_data(boulders):
+    # Total count of flashes
+    flashes = 0
+    sent_boulders = boulders.distinct()
+    for boulder in sent_boulders:
+        send_row = Send.objects.filter(boulder=boulder.id).first() # first uploaded boulder that the user ascended (not counting repeated ascents which were not uploaded first)
+        if send_row.attempts == 1:
+            flashes += 1
+    return flashes
