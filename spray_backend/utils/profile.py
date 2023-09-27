@@ -17,7 +17,7 @@ def get_session_boulders(sent_boulders, user_id):
     session_boulders = []
     boulders = []
     for index, sent_boulder in enumerate(sent_boulders):
-        session_boulders.append(get_boulder_data(sent_boulder.boulder, user_id))
+        session_boulders.append(get_boulder_data(sent_boulder.boulder, user_id, sent_boulder))
         # if we reach end of boulders array or current send date != next boulder's send date, append session to boulders
         formatted_send_date = sent_boulder.date_created.astimezone(pst_timezone).strftime('%B %d, %Y')
         if index == len(sent_boulders) - 1 or formatted_send_date != sent_boulders[index + 1].date_created.astimezone(pst_timezone).strftime('%B %d, %Y'):

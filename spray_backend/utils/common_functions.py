@@ -73,7 +73,21 @@ def add_activity(model_name, model_id, action, item, other_info, spraywall, user
     else:
         print(activity_serializer.errors)
 
-def get_boulder_data(boulder, user_id):
+def get_sent_boulder_data(boulder, user_id):
+    DATA = []
+    sent_boulders = Send.objects.filter(boulder=boulder.id, person=user_id).order_by('-date_created')
+    for boulder in sent_boulders:
+        DATA.append({
+            'id': boulder.id,
+            'date': DateFormat(boulder.date_created).format('F j, Y'),
+            'attempts': boulder.attempts,
+            'grade': boulder.grade,
+            'quality': boulder.quality,
+            'notes': boulder.notes
+        })
+    return DATA
+
+def get_boulder_data(boulder, user_id, extra_data=None):
     return {
         'id': boulder.id,
         'uuid': uuid.uuid4(),
@@ -95,7 +109,9 @@ def get_boulder_data(boulder, user_id):
         'isBookmarked': Bookmark.objects.filter(person=user_id, boulder=boulder).exists(),
         'isSent': Send.objects.filter(person=user_id, boulder=boulder).exists(),
         'inCircuit': Circuit.objects.filter(boulders=boulder, person=user_id).exists(),
-        'userSendsCount': boulder.send_set.filter(person=user_id).count(),
+        'userSendsData': get_sent_boulder_data(boulder, user_id),
+        'userAttempts': extra_data.attempts if extra_data else None,
+        'userGrade': extra_data.grade if extra_data else None,
         'date': DateFormat(boulder.date_created).format('F j, Y'),
     }
 

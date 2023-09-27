@@ -23,6 +23,9 @@ def profile_quick_data(request, user_id, spraywall_id):
         stats_section_quick_data = copy.deepcopy(stats_section_quick_data_template)
         stats_section_quick_data['Top Grade'] = get_top_grade_quick_data(sent_boulders)
         stats_section_quick_data['Flashes'] = get_flashes_quick_data(sent_boulders)
+        # Convert the dictionary into an array of objects - simpler format for frontend use
+        boulders_section_quick_data = [{'section': key, 'data': value} for key, value in boulders_section_quick_data.items()]
+        stats_section_quick_data = [{'section': key, 'data': value} for key, value in stats_section_quick_data.items()]
         data = {
             'bouldersSectionQuickData': boulders_section_quick_data,
             'statsSectionQuickData': stats_section_quick_data,
