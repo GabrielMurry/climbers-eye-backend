@@ -1,7 +1,7 @@
 from django.db import models
 
 class Gym(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=50)
     location = models.CharField(max_length=100, blank=True, null=True)
     type = models.CharField(max_length=20)  # 'commercial' or 'home'
     date_created = models.DateTimeField(auto_now_add=True)
