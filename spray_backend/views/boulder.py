@@ -201,3 +201,10 @@ def boulder_stats(request, boulder_id):
             'isProject': is_project
         }
         return Response(data, status=status.HTTP_200_OK)
+    
+@api_view(['DELETE'])
+def delete_logged_ascent(request, send_id):
+    if request.method == 'DELETE':
+        send_row = Send.objects.get(id=send_id)
+        send_row.delete()
+        return Response(status=status.HTTP_200_OK)

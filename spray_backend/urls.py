@@ -46,6 +46,7 @@ urlpatterns = [
     path('add_or_remove_boulder_in_circuit/<int:circuit_id>/<int:boulder_id>', boulder.add_or_remove_boulder_in_circuit), # boulder
     path('get_boulders_from_circuit/<int:user_id>/<int:circuit_id>', boulder.get_boulders_from_circuit), # boulder
     path('boulder_stats/<int:boulder_id>', boulder.boulder_stats), # boulder
+    path('delete_logged_ascent/<int:send_id>', boulder.delete_logged_ascent), # boulder
     path('circuits/<int:user_id>/<int:spraywall_id>/<int:boulder_id>', circuit.circuits), # circuit
     path('delete_circuit/<int:user_id>/<int:spraywall_id>/<int:circuit_id>', circuit.delete_circuit), # circuit
     path('filter_circuits/<int:user_id>/<int:spraywall_id>', circuit.filter_circuits), # circuit
