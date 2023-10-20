@@ -85,6 +85,8 @@ WSGI_APPLICATION = 'spray_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+POSTGRESQL_PASSWORD = env('POSTGRESQL_PASSWORD')
+
 DATABASES = {
     # 'default': {
     #     'ENGINE': 'django.db.backends.sqlite3',
@@ -92,9 +94,9 @@ DATABASES = {
     # }
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'spray',
-        'USER': 'postgres',
-        'PASSWORD': 'finncallie007!',
+        'NAME': 'climberseye',
+        'USER': 'admin',
+        'PASSWORD': POSTGRESQL_PASSWORD,
         'HOST': 'localhost',
         'PORT': '',
     }
