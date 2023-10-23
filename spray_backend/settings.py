@@ -31,7 +31,7 @@ SECRET_KEY = env('DJANGO_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.50.29', '127.0.0.1', '10.0.0.120', '10.0.0.125', '10.0.0.121', '10.0.0.124', '10.0.0.127', '192.168.1.176', '54.176.9.244', '54.176.202.26', '18.144.73.86']
+ALLOWED_HOSTS = ['*']
 CORS_ORIGIN_ALLOW_ALL = True # Change it in production and specify your own origins
 
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
@@ -85,18 +85,12 @@ WSGI_APPLICATION = 'spray_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-POSTGRESQL_PASSWORD = env('POSTGRESQL_PASSWORD')
-
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'climberseye',
-        'USER': 'admin',
-        'PASSWORD': POSTGRESQL_PASSWORD,
+        'NAME': 'spray',
+        'USER': 'postgres',
+        'PASSWORD': env('POSTGRESQL_PASSWORD'),
         'HOST': 'localhost',
         'PORT': '',
     }
