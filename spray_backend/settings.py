@@ -22,17 +22,19 @@ MEDIA_ROOT = ''
 # Path that will be accessed through the browser to access these files
 MEDIA_URL = ''
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_KEY')
+SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DJANGO_DEBUG", False)
+# Allowed Hosts Definition
+if DEBUG:
+    # If Debug is True, allow all.
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
 
-ALLOWED_HOSTS = ['*']
-CORS_ORIGIN_ALLOW_ALL = True # Change it in production and specify your own origins
+CORS_ORIGIN_ALLOW_ALL = True  # Change it in production and specify your own origins
 
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 
@@ -91,10 +93,10 @@ DATABASES = {
         'NAME': 'spray',
         'USER': 'postgres',
         'PASSWORD': env('POSTGRESQL_PASSWORD'),
-        'HOST': 'localhost',
-        'PORT': '',
+        'HOST': 'my-postgres-container',
+        'PORT': '5432',
     }
-}   
+}
 
 
 # Password validation
