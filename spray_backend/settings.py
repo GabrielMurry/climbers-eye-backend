@@ -90,10 +90,10 @@ WSGI_APPLICATION = 'spray_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'spray',
+        'NAME': 'postgres',
         'USER': 'postgres',
         'PASSWORD': env('POSTGRESQL_PASSWORD'),
-        'HOST': 'my-postgres-container',
+        'HOST': env('AWS_RDS_URL'),
         'PORT': '5432',
     }
 }

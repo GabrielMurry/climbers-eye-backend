@@ -1,7 +1,12 @@
 from .common_imports import *
+import environ
+env = environ.Env()
+environ.Env.read_env()
+
 
 def get_spraywalls(gym_id):
-    spraywalls = SprayWall.objects.filter(gym__id=gym_id) # gym__id is used to specify the filter condition. It indicates that you want to filter the SprayWall objects based on the id of the related gym object.
+    # gym__id is used to specify the filter condition. It indicates that you want to filter the SprayWall objects based on the id of the related gym object.
+    spraywalls = SprayWall.objects.filter(gym__id=gym_id)
     spraywalls_array = []
     for spraywall in spraywalls:
         spraywalls_array.append({
@@ -12,6 +17,7 @@ def get_spraywalls(gym_id):
             'height': spraywall.spraywall_image_height,
         })
     return spraywalls_array
+
 
 def s3_image_url(base64_image):
     try:
@@ -25,7 +31,7 @@ def s3_image_url(base64_image):
         # image_file, bucket name, unique key or filename for image in s3
         s3.upload_fileobj(image_file, 'sprayimages', s3_key)
         # Construct the S3 URL for the uploaded image
-        image_url = f"https://sprayimages.s3.amazonaws.com/{s3_key}"
+        image_url = f"{env('AWS_S3_URL')}/{s3_key}"
         return image_url
     except NoCredentialsError:
         # Handle the case where AWS credentials are missing or incorrect
@@ -38,12 +44,35 @@ def s3_image_url(base64_image):
         error_message = str(e)
         print(error_message)
 
+
+def prepare_new_spraywall_data(spraywall, gym_id):
+    image_url = s3_image_url(spraywall['image_data'])
+    return {
+        'name': spraywall['name'],
+        'spraywall_image_url': image_url,
+        'spraywall_image_width': spraywall['image_width'],
+        'spraywall_image_height': spraywall['image_height'],
+        'gym': gym_id,
+    }
+
+
+def create_spraywall(spraywall_data, gym_id):
+    spraywall_data = prepare_new_spraywall_data(spraywall_data, gym_id)
+    spraywall_serializer = SprayWallSerializer(data=spraywall_data)
+    if spraywall_serializer.is_valid():
+        return spraywall_serializer.save()
+    else:
+        print(spraywall_serializer.errors)
+        return None
+
+
 def delete_image_from_s3(image_url):
     parsed_url = urlparse(image_url)
     bucket_name = 'sprayimages'
     s3_key = parsed_url.path.lstrip('/')
     # Delete the object from the S3 bucket
     s3.delete_object(Bucket=bucket_name, Key=s3_key)
+
 
 def get_filter_queries(request):
     # Convert search query to lowercase
@@ -57,6 +86,7 @@ def get_filter_queries(request):
     # can't be named 'status' because our Response object already has property 'status'
     filter_status = request.GET.get('status', '').lower()
     return search_query, sort_by, min_grade_index, max_grade_index, circuits, climb_type, filter_status
+
 
 def add_activity(model_name, model_id, action, item, other_info, spraywall, user):
     data = {
@@ -73,9 +103,11 @@ def add_activity(model_name, model_id, action, item, other_info, spraywall, user
     else:
         print(activity_serializer.errors)
 
+
 def get_sent_boulder_data(boulder, user_id):
     DATA = []
-    sent_boulders = Send.objects.filter(boulder=boulder.id, person=user_id).order_by('-date_created')
+    sent_boulders = Send.objects.filter(
+        boulder=boulder.id, person=user_id).order_by('-date_created')
     for boulder in sent_boulders:
         DATA.append({
             'id': boulder.id,
@@ -86,6 +118,7 @@ def get_sent_boulder_data(boulder, user_id):
             'notes': boulder.notes
         })
     return DATA
+
 
 def get_boulder_data(boulder, user_id, extra_data=None):
     return {
@@ -116,6 +149,8 @@ def get_boulder_data(boulder, user_id, extra_data=None):
     }
 
 # no need for this???
+
+
 def delete_activity(action, item, other_info, spraywall, user):
     # action and other_info are optional parameters!!
     # Start with a base query without specific conditions
@@ -132,6 +167,7 @@ def delete_activity(action, item, other_info, spraywall, user):
     # Execute the query
     activity_row = Activity.objects.filter(base_query)
     activity_row.delete()
+
 
 def s3_image_url(base64_image):
     try:
@@ -157,6 +193,7 @@ def s3_image_url(base64_image):
         # Log the error or provide an appropriate error message
         error_message = str(e)
         print(error_message)
+
 
 def delete_image_from_s3(image_url):
     parsed_url = urlparse(image_url)
