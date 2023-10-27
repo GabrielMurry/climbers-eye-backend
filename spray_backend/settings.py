@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import django_heroku
 from pathlib import Path
 import environ
 env = environ.Env()
@@ -26,13 +27,9 @@ MEDIA_URL = ''
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool("DJANGO_DEBUG", False)
-# Allowed Hosts Definition
-if DEBUG:
-    # If Debug is True, allow all.
-    ALLOWED_HOSTS = ['*']
-else:
-    ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
+DEBUG = False
+
+ALLOWED_HOSTS = ['*']
 
 CORS_ORIGIN_ALLOW_ALL = True  # Change it in production and specify your own origins
 
@@ -152,3 +149,5 @@ AWS_S3_OBJECT_PARAMETERS = {
 # Media Files Configuration
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+
+django_heroku.settings(locals())
