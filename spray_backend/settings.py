@@ -29,9 +29,14 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['climberseye-django-54eb29e79683.herokuapp.com']
 
-CORS_ORIGIN_ALLOW_ALL = True  # Change it in production and specify your own origins
+# Change to False if in production and specify your own origins
+CORS_ORIGIN_ALLOW_ALL = False
+
+CORS_ALLOWED_ORIGINS = [
+    env('CORS_ALLOWED_ORIGIN')
+]
 
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 
@@ -48,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'storages',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -58,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'spray_backend.urls'
