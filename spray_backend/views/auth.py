@@ -4,10 +4,12 @@ from django.contrib.auth import authenticate, login, logout
 from spray_backend.forms import CreateUserForm
 from spray_backend.utils.auth import *
 
+
 @api_view(['GET'])
 def temp_csrf_token(request):
     if request.method == 'GET':
         return Response({'csrfToken': get_token(request)}, status=status.HTTP_200_OK)
+
 
 @api_view(['POST'])
 def signup_user(request):
@@ -28,6 +30,7 @@ def signup_user(request):
         else:
             print(form.errors)
 
+
 @api_view(['POST'])
 def login_user(request):
     if request.method == 'POST':
@@ -39,15 +42,16 @@ def login_user(request):
             person = Person.objects.get(username=username)
             data = {
                 'csrfToken': get_token(request),
-                'user': get_auth_user_data(person), 
+                'user': get_auth_user_data(person),
                 'gym': get_auth_gym_data(person),
-                'spraywalls': get_auth_spraywalls_data(person), 
+                'spraywalls': get_auth_spraywalls_data(person),
                 'headshotImage': get_auth_headshot_data(person),
             }
             return Response(data, status=status.HTTP_200_OK)
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        
+
+
 @api_view(['POST'])  # Use POST method for logout
 def logout_user(request):
     if request.method == 'POST':

@@ -29,10 +29,10 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['climberseye-django-54eb29e79683.herokuapp.com']
+ALLOWED_HOSTS = ['*']
 
 # Change to False if in production and specify your own origins
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
 # CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
