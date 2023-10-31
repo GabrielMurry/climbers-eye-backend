@@ -32,12 +32,19 @@ DEBUG = False
 ALLOWED_HOSTS = ['*']
 
 # Change to False if in production and specify your own origins
-CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False  # Set to False to define specific origins
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
-    env('CORS_ALLOWED_ORIGIN')
+    "exp://192.168.50.29:8081",
 ]
+
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "OPTIONS",  # Include OPTIONS to handle pre-flight requests
+]
+
 
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 
@@ -70,7 +77,7 @@ MIDDLEWARE = [
 ]
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-USE_X_FORWARDED_HOST = True
+
 SECURE_SSL_REDIRECT = True
 
 ROOT_URLCONF = 'spray_backend.urls'
