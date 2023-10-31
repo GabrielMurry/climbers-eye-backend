@@ -3,7 +3,6 @@ from spray_backend.utils.common_functions import *
 from django.contrib.auth import authenticate, login, logout
 from spray_backend.forms import CreateUserForm
 from spray_backend.utils.auth import *
-from django.views.decorators.csrf import csrf_exempt
 
 
 @api_view(['GET'])
@@ -33,7 +32,6 @@ def signup_user(request):
 
 
 @api_view(['POST'])
-@csrf_exempt
 def login_user(request):
     if request.method == 'POST':
         username = request.data.get('username')
