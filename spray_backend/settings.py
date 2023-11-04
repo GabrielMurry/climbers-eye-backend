@@ -29,22 +29,13 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
-
-# Change to False if in production and specify your own origins
-CORS_ALLOW_ALL_ORIGINS = False  # Set to False to define specific origins
-CORS_ALLOW_CREDENTIALS = True
-
+ALLOWED_HOSTS = ['https://climberseye-django-54eb29e79683.herokuapp.com/']
+CORS_ORIGIN_ALLOW_ALL = False # Change it in production and specify your own origins
 CORS_ALLOWED_ORIGINS = [
-    "exp://192.168.50.29:8081",
+    "http://localhost:3000",  # Your local development environment
+    "https://climberseye-django-54eb29e79683.herokuapp.com/",  # Your Heroku app
+    "exp://192.168.50.29:8081",  # Expo Go development server
 ]
-
-CORS_ALLOW_METHODS = [
-    "GET",
-    "POST",
-    "OPTIONS",  # Include OPTIONS to handle pre-flight requests
-]
-
 
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 
@@ -61,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'storages',
+    'django-heroku'
     'corsheaders',
 ]
 
@@ -78,7 +70,8 @@ MIDDLEWARE = [
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-SECURE_SSL_REDIRECT = True
+# SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = False
 
 ROOT_URLCONF = 'spray_backend.urls'
 
