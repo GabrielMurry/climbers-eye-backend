@@ -37,6 +37,8 @@ CORS_ALLOWED_ORIGINS = [
     "exp://192.168.50.29:8081",  # Expo Go development server
 ]
 
+CSRF_TRUSTED_ORIGINS = ['exp://192.168.50.29:8081']
+
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 
 
