@@ -52,6 +52,9 @@ def list(request, spraywall_id, user_id):
 @api_view(['POST', 'DELETE'])
 def like_boulder(request, boulder_id, user_id):
     if request.method == 'POST':
+        csrf_token = request.META.get("HTTP_X_CSRFTOKEN")
+        print(csrf_token)
+        print(request.session.get("csrf_token"))
         data = { 'person': user_id, 'boulder': boulder_id }
         like_serializer = LikeSerializer(data=data)
         if like_serializer.is_valid():
