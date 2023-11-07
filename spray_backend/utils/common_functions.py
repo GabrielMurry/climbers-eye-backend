@@ -5,6 +5,19 @@ environ.Env.read_env()
 
 
 def get_spraywalls(gym_id):
+    """
+    This is a docstring that provides information about my_function.
+
+    Args:
+        parameter1: Description of the first parameter.
+        parameter2: Description of the second parameter.
+
+    Returns:
+        Description of the return value.
+
+    Raises:
+        Any exceptions raised by the function.
+    """
     # gym__id is used to specify the filter condition. It indicates that you want to filter the SprayWall objects based on the id of the related gym object.
     spraywalls = SprayWall.objects.filter(gym__id=gym_id)
     spraywalls_array = []

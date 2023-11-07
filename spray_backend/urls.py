@@ -52,13 +52,12 @@ urlpatterns = [
     path('filter_circuits/<int:user_id>/<int:spraywall_id>', circuit.filter_circuits), # circuit
     path('add_profile_banner_image/<int:user_id>', profile.add_profile_banner_image), # profile
     path('get_all_user_gyms/<int:user_id>', profile.get_all_user_gyms), # profile
-    path('profile_quick_data/<int:user_id>/<int:spraywall_id>', profile.profile_quick_data), # profile
     path('edit_headshot/<int:user_id>', profile.edit_headshot), # profile
     path('edit_user_info/<int:user_id>', profile.edit_user_info), # profile
     path('update_user_gym/<int:user_id>', profile.update_user_gym), # profile
     path('profile_boulder_section_list/<int:spraywall_id>/<int:user_id>', profile.profile_boulder_section_list), # profile
-    path('get_user_circuits/<int:user_id>/<int:spraywall_id>', profile.get_user_circuits), # profile
     path('profile_stats_section/<int:user_id>/<int:spraywall_id>', profile.profile_stats_section), # profile
+    path('profile_quick_data/<int:user_id>/<int:spraywall_id>', profile.profile_quick_data), # profile
     path('user_activity/<int:user_id>/<int:gym_id>', activity.user_activity), # activity
 ]
 

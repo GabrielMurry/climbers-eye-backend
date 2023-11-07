@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login, logout
 from spray_backend.forms import CreateUserForm
 from spray_backend.utils.auth import *
 from django.middleware.csrf import rotate_token
+from spray_backend.utils.profile import get_profile_quick_data
 
 
 @api_view(['GET'])
@@ -45,11 +46,9 @@ def signup_user(request):
 @api_view(['POST'])
 def login_user(request):
     if request.method == 'POST':
-        csrf_token = request.META.get("HTTP_X_CSRFTOKEN")
-        print(csrf_token)
-        print(request.session.get("csrf_token"))
         username = request.data.get('username')
         password = request.data.get('password')
+        print(username, password)
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
@@ -58,12 +57,18 @@ def login_user(request):
             token = get_token(request)
             # Store the token in the session
             request.session['csrf_token'] = token
+            user = get_auth_user_data(person)
+            gym = get_auth_gym_data(person)
+            headshot_image = get_auth_headshot_data(person)
+            spraywalls = get_all_spraywalls_data(person)
+            profile_quick_data = get_profile_quick_data(person.id, spraywalls)
             data = {
                 'csrfToken': token,
-                'user': get_auth_user_data(person),
-                'gym': get_auth_gym_data(person),
-                'spraywalls': get_auth_spraywalls_data(person),
-                'headshotImage': get_auth_headshot_data(person),
+                'user': user,
+                'gym': gym,
+                'spraywalls': spraywalls,
+                'headshotImage': headshot_image,
+                'profileData': profile_quick_data,
             }
             return Response(data, status=status.HTTP_200_OK)
         else:

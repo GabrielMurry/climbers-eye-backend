@@ -27,7 +27,7 @@ MEDIA_URL = ''
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['https://climberseye-django-54eb29e79683.herokuapp.com']
 CORS_ORIGIN_ALLOW_ALL = False # Change it in production and specify your own origins
@@ -40,7 +40,6 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = ['exp://192.168.50.29:8081']
 
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
-
 
 # Application definition
 

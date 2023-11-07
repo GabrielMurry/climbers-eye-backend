@@ -1,59 +1,14 @@
 from spray_backend.utils.profile import *
 from spray_backend.utils.common_functions import *
 from spray_backend.utils.common_imports import *
-from spray_backend.utils.constants import boulders_section_quick_data_template, stats_section_quick_data_template
 
-@api_view(['GET'])
+@api_view(['GET']) # DELETE
 def profile_quick_data(request, user_id, spraywall_id):
     if request.method == 'GET':
-        # get copy of boulders section quick data template
-        boulders_section_quick_data = copy.deepcopy(boulders_section_quick_data_template)
-        # logbook
-        sent_boulders = Boulder.objects.filter(send__person=user_id, spraywall=spraywall_id)
-        boulders_section_quick_data['Logbook'] = get_logbook_quick_data(sent_boulders)
-        # creations
-        boulders = Boulder.objects.filter(spraywall=spraywall_id, setter_person=user_id)
-        boulders_section_quick_data['Creations'] = get_creations_quick_data(boulders)
-        # likes count
-        boulders_section_quick_data['Likes'] = get_likes_quick_data(user_id, spraywall_id)
-        # bookmarks count
-        boulders_section_quick_data['Bookmarks'] = get_bookmarks_quick_data(user_id, spraywall_id)
-
-        # get copy of stats section quick data template
-        stats_section_quick_data = copy.deepcopy(stats_section_quick_data_template)
-        stats_section_quick_data['Top Grade'] = get_top_grade_quick_data(sent_boulders)
-        stats_section_quick_data['Flashes'] = get_flashes_quick_data(sent_boulders)
-        # Convert the dictionary into an array of objects - simpler format for frontend use
-        boulders_section_quick_data = [{'section': key, 'data': value} for key, value in boulders_section_quick_data.items()]
-        stats_section_quick_data = [{'section': key, 'data': value} for key, value in stats_section_quick_data.items()]
         data = {
-            'bouldersSectionQuickData': boulders_section_quick_data,
-            'statsSectionQuickData': stats_section_quick_data,
-        }
-        return Response(data, status=status.HTTP_200_OK)
-
-@api_view(['GET'])
-def get_user_circuits(request, user_id, spraywall_id):
-    if request.method == 'GET':
-        circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
-        circuits_data = []
-        for circuit in circuits:
-            # retrieving all boulder data in particular circuit
-            boulders = circuit.boulders.all()
-            boulder_data = []
-            for boulder in boulders:
-                boulder_data.append(get_boulder_data(boulder, user_id))
-            # putting boulder data inside circuits data
-            circuits_data.append({
-                'id': circuit.id,
-                'name': circuit.name,
-                'description': circuit.description,
-                'color': circuit.color,
-                'private': circuit.private,
-                'boulderData': boulder_data,
-            })
-        data = {
-            'circuitsData': circuits_data,
+            'bouldersSectionQuickData': get_boulder_section_quick_data(user_id, spraywall_id),
+            'statsSectionQuickData': get_stats_section_quick_data(user_id, spraywall_id),
+            'circuitsSectionQuickData': get_circuits_section_quick_data(user_id, spraywall_id),
         }
         return Response(data, status=status.HTTP_200_OK)
     

@@ -18,7 +18,7 @@ def get_auth_gym_data(user):
         }
     return None
 
-def get_auth_spraywalls_data(user):
+def get_all_spraywalls_data(user):
     if user.gym_id:
         return get_spraywalls(user.gym_id)
     return None

@@ -107,3 +107,74 @@ def get_flashes_quick_data(boulders):
         if send_row.attempts == 1:
             flashes += 1
     return flashes
+
+def get_boulder_section_quick_data(user_id, spraywall_id):
+    """
+    This is a docstring that provides information about my_function.
+
+    Args:
+        parameter1: Description of the first parameter.
+        parameter2: Description of the second parameter.
+
+    Returns:
+        Description of the return value.
+
+    Raises:
+        Any exceptions raised by the function.
+    """
+    # get copy of boulders section quick data template
+    boulders_section_quick_data = copy.deepcopy(boulders_section_quick_data_template)
+    # logbook
+    sent_boulders = Boulder.objects.filter(send__person=user_id, spraywall=spraywall_id)
+    boulders_section_quick_data['Logbook'] = get_logbook_quick_data(sent_boulders)
+    # creations
+    boulders = Boulder.objects.filter(spraywall=spraywall_id, setter_person=user_id)
+    boulders_section_quick_data['Creations'] = get_creations_quick_data(boulders)
+    # likes count
+    boulders_section_quick_data['Likes'] = get_likes_quick_data(user_id, spraywall_id)
+    # bookmarks count
+    boulders_section_quick_data['Bookmarks'] = get_bookmarks_quick_data(user_id, spraywall_id)
+    # Convert the dictionary into an array of objects - simpler format for frontend use
+    boulders_section_quick_data = [{'section': key, 'data': value} for key, value in boulders_section_quick_data.items()]
+    return boulders_section_quick_data
+
+def get_stats_section_quick_data(user_id, spraywall_id):
+    # get copy of stats section quick data template
+    stats_section_quick_data = copy.deepcopy(stats_section_quick_data_template)
+    sent_boulders = Boulder.objects.filter(send__person=user_id, spraywall=spraywall_id)
+    stats_section_quick_data['Top Grade'] = get_top_grade_quick_data(sent_boulders)
+    stats_section_quick_data['Flashes'] = get_flashes_quick_data(sent_boulders)
+    # Convert the dictionary into an array of objects - simpler format for frontend use
+    stats_section_quick_data = [{'section': key, 'data': value} for key, value in stats_section_quick_data.items()]
+    return stats_section_quick_data
+
+def get_circuits_section_quick_data(user_id, spraywall_id):
+    circuits = Circuit.objects.filter(person=user_id, spraywall=spraywall_id)
+    circuits_section_quick_data = []
+    for circuit in circuits:
+        # retrieving all boulder data in particular circuit
+        boulders = circuit.boulders.all()
+        boulder_data = []
+        for boulder in boulders:
+            boulder_data.append(get_boulder_data(boulder, user_id))
+        # putting boulder data inside circuits data
+        circuits_section_quick_data.append({
+            'id': circuit.id,
+            'name': circuit.name,
+            'description': circuit.description,
+            'color': circuit.color,
+            'private': circuit.private,
+            'boulderData': boulder_data,
+        })
+    return circuits_section_quick_data
+
+def  get_profile_quick_data(user_id, spraywalls):
+    profile_quick_data = []
+    for spraywall in spraywalls:
+        if 'id' in spraywall:
+            profile_quick_data.append({
+                'bouldersSectionQuickData': get_boulder_section_quick_data(user_id, spraywall['id']),
+                'statsSectionQuickData': get_stats_section_quick_data(user_id, spraywall['id']),
+                'circuitsSectionQuickData': get_circuits_section_quick_data(user_id, spraywall['id']),
+            })
+    return profile_quick_data

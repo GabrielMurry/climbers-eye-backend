@@ -16,6 +16,7 @@ import base64
 import copy
 import boto3
 import environ
+from spray_backend.utils.constants import boulders_section_quick_data_template, stats_section_quick_data_template
 env = environ.Env()
 environ.Env.read_env()
 s3 = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
