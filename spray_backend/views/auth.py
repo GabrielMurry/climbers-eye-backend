@@ -61,14 +61,14 @@ def login_user(request):
             gym = get_auth_gym_data(person)
             headshot_image = get_auth_headshot_data(person)
             spraywalls = get_all_spraywalls_data(person)
-            profile_quick_data = get_profile_quick_data(person.id, spraywalls)
+            # profile_quick_data = get_profile_quick_data(person.id, spraywalls)
             data = {
                 'csrfToken': token,
                 'user': user,
                 'gym': gym,
                 'spraywalls': spraywalls,
                 'headshotImage': headshot_image,
-                'profileData': profile_quick_data,
+                # 'profileData': profile_quick_data,
             }
             return Response(data, status=status.HTTP_200_OK)
         else:
