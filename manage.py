@@ -6,7 +6,7 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'spray_backend.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'climbers_eye_backend.settings')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
