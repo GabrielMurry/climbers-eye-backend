@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions
 from django.db import transaction
 from .serializers import GymSerializer
-from ..auth.serializers import PersonSerializer
+from ..user.serializers import PersonSerializer
 from .models import Gym
 from ..spraywall.models import SprayWall
 from ..boulder.models import Boulder

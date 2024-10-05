@@ -4,10 +4,10 @@ from django.db.models import Count
 from .models import Boulder
 from ..spraywall.models import SprayWall
 from ..send.models import Send
-from ..auth.models import Person
-from ...utils.constants import grade_labels
-from ...utils.fields import UrlField, GradeField
-from ...utils.mixins import BoulderMixin
+from ..user.models import Person
+from utils.constants import grade_labels
+from utils.fields import UrlField, GradeField
+from utils.mixins import BoulderMixin
 
 class BoulderSerializer(serializers.ModelSerializer, BoulderMixin):
     url = UrlField(source='image_url', required=True)

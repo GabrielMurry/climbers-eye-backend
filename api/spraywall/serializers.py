@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import SprayWall
 from ..gym.models import Gym
-from ...utils.fields import UrlField
+from utils.fields import UrlField
 
 class SprayWallSerializer(serializers.ModelSerializer):
     url = UrlField(source='image_url', required=True)

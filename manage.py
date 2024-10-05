@@ -20,3 +20,8 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+# makemigrations: Detects any changes to the models and creates migration files in each app’s migrations/ folder.
+# migrate: Applies the migration files and modifies the database schema accordingly.

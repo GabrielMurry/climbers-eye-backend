@@ -1,6 +1,6 @@
 from django.db import models
 from ..spraywall.models import SprayWall
-from ..auth.models import Person
+from ..user.models import Person
 
 class Boulder(models.Model):
     name = models.CharField(max_length=50)

@@ -1,6 +1,6 @@
 from django.db import models
-from auth.models import Person
-from boulder.models import Boulder
+from ..user.models import Person
+from ..boulder.models import Boulder
 
 class Like(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)

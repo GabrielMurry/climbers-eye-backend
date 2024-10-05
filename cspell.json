@@ -17,7 +17,8 @@
     "kickboard",
     "spraywalls",
     "botocore",
-    "ascensionist"
+    "ascensionist",
+    "getchannel"
   ],
   "ignoreWords": [],
   "import": []

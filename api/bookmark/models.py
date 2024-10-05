@@ -1,5 +1,5 @@
 from django.db import models
-from ..auth.models import Person
+from ..user.models import Person
 from ..boulder.models import Boulder
 
 class Bookmark(models.Model):

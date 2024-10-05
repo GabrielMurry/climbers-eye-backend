@@ -3,9 +3,9 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from .serializers import SendList, SendDetail
 from .models import Send
-from ..auth.models import Person
+from ..user.models import Person
 from ..boulder.models import Boulder
-from ...utils.constants import grade_labels
+from utils.constants import grade_labels
 from decimal import Decimal
 
 class SendList(generics.ListCreateAPIView):
@@ -15,7 +15,6 @@ class SendList(generics.ListCreateAPIView):
     def get_object(self):
         return get_object_or_404(Boulder, id=self.kwargs['boulder_id'])
     
-    @staticmethod
     def grade_mode(self, boulder, suggested_grade) -> int:
         """
         Calculate the boulder grade mode from every send of this boulder including the new suggested grade.
@@ -50,7 +49,6 @@ class SendList(generics.ListCreateAPIView):
         most_common_grade: int = max(suggested_grade_counts, key=suggested_grade_counts.get)
         return most_common_grade
     
-    @staticmethod
     def quality_mean(self, current_mean_score, num_existing_scores, new_score) -> Decimal:
         """
         Calculates new quality rating mean after adding user's new quality rating score.
@@ -87,7 +85,6 @@ class SendDetail(generics.DestroyAPIView):
     def get_object(self):
         return get_object_or_404(Send, id=self.kwargs['pk'])
 
-    @staticmethod
     def grade_mode(self, boulder, send_id) -> int:
         """
         Calculate the boulder grade mode from every send of this boulder excluding the send from which the user wants to delete.
@@ -115,7 +112,6 @@ class SendDetail(generics.DestroyAPIView):
         most_common_grade: int = max(suggested_grade_counts, key=suggested_grade_counts.get)
         return most_common_grade
     
-    @staticmethod
     def quality_mean(self, current_mean_score, num_existing_scores, remove_score) -> Decimal | None:
         """
         Calculates new quality rating mean after removing user's quality rating score.

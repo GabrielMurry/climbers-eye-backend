@@ -15,11 +15,12 @@ from pathlib import Path
 import django_heroku
 import environ
 from corsheaders.defaults import default_headers
-env = environ.Env()
-environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Load the environment variables from .env file which is located in base (root) directory
+env = environ.Env()
+environ.Env.read_env(env_file=str(BASE_DIR / '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env('DJANGO_SECRET_KEY')
@@ -49,8 +50,16 @@ INSTALLED_APPS = [
     'django_heroku',
     'corsheaders',
     'django_filters',
-    'rest_framework_simplejwt',
-    'api.auth',  # Including the auth app in my project
+    'rest_framework_simplejwt.token_blacklist',
+    'api.user.apps.UserConfig',
+    'api.boulder.apps.BoulderConfig',  
+    'api.gym.apps.GymConfig',  
+    'api.circuit.apps.CircuitConfig',  
+    'api.spraywall.apps.SpraywallConfig',
+    'api.like.apps.LikeConfig',  
+    'api.bookmark.apps.BookmarkConfig',
+    'api.send.apps.SendConfig', 
+    'api.profile.apps.ProfileConfig'
 ]
 
 MIDDLEWARE = [
@@ -164,7 +173,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Custom user model
-AUTH_USER_MODEL = "auth.Person"
+AUTH_USER_MODEL = "user.Person"
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
@@ -184,6 +193,11 @@ SIMPLE_JWT = {
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
+# Specifies the default type of auto-incrementing primary key field that Django will use for your 
+# models when you don’t explicitly define a primary key field.
+# BigAutoField is helpful for applications that expect to handle a large number of records. The standard 
+# AutoField (which is a 32-bit integer) might not be large enough for databases with millions or billions of rows. 
+# BigAutoField gives you a larger range, reducing the risk of primary key overflow.
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')

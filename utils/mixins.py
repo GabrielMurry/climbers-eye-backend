@@ -1,5 +1,5 @@
-from ..api.boulder.models import Boulder
-from ..api.send.models import Send
+from api.boulder.models import Boulder
+from api.send.models import Send
 
 class BoulderMixin:
     def get_userSendsCount(self, obj: Boulder):

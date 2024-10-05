@@ -1,6 +1,6 @@
 from django.db import models
 from ..boulder.models import Boulder
-from ..auth.models import Person
+from ..user.models import Person
 from ..spraywall.models import SprayWall
 
 class Circuit(models.Model):
