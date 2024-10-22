@@ -5,9 +5,11 @@ from .models import Boulder
 from ..spraywall.models import SprayWall
 from ..send.models import Send
 from ..user.models import Person
+from ..circuit.models import Circuit
 from utils.constants import grade_labels
 from utils.fields import UrlField, GradeField
 from utils.mixins import BoulderMixin
+from utils.test import create_blurred_placeholder
 
 class BoulderSerializer(serializers.ModelSerializer, BoulderMixin):
     url = UrlField(source='image_url', required=True)
@@ -40,6 +42,11 @@ class BoulderSerializer(serializers.ModelSerializer, BoulderMixin):
     
     def to_representation(self, instance):
         representation = super().to_representation(instance)
+        # print('hi')
+        # print(instance.image_url)
+        # if instance.name == 'Butter':
+        #     blur = create_blurred_placeholder(instance.image_url)
+        #     print(instance.name, blur)
         # Replace the setter ID with the username in the serialized representation
         representation['setter'] = instance.setter.username if instance.setter else None
         return representation
@@ -50,6 +57,7 @@ class BoulderDetailSerializer(serializers.ModelSerializer, BoulderMixin):
     firstAscensionist = serializers.CharField(source='first_ascensionist.username', read_only=True)
     sends = serializers.IntegerField(source='sends_count', read_only=True)
     isSent = serializers.SerializerMethodField(read_only=True)
+    inCircuit = serializers.SerializerMethodField(read_only=True)
     userSendsCount = serializers.SerializerMethodField(read_only=True)
     grade = GradeField(read_only=True)
 
@@ -57,7 +65,7 @@ class BoulderDetailSerializer(serializers.ModelSerializer, BoulderMixin):
         model = Boulder
         fields = [
             'boulderBarChartData', 'userSendsData', 'firstAscensionist', 'sends',
-            'isSent', 'userSendsCount', 'grade', 'quality'
+            'isSent', 'inCircuit', 'userSendsCount', 'grade', 'quality'
         ]
 
     def get_boulderBarChartData(self, obj: Boulder):
@@ -98,3 +106,13 @@ class BoulderDetailSerializer(serializers.ModelSerializer, BoulderMixin):
     def get_isSent(self, obj: Boulder):
         user_id = self.context['request'].user.id
         return Send.objects.filter(boulder=obj.id, person=user_id).exists()
+    
+    def get_inCircuit(self, obj: Boulder):
+        user_id = self.context['request'].user.id
+        instance = Boulder.objects.get(id=obj.id)
+        spraywall_id = instance.spraywall.id
+        return Circuit.objects.filter(
+            person=user_id,
+            spraywall=spraywall_id,
+            boulders__id=obj.id
+        ).exists()

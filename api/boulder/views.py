@@ -1,9 +1,9 @@
-from rest_framework.pagination import PageNumberPagination
 from rest_framework import status, generics, permissions, mixins
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.db.models import OuterRef, Exists, Q
 from django_filters import rest_framework as filters
+from utils.pagination import StandardPagination
 from .serializers import BoulderSerializer, BoulderDetailSerializer
 from ..circuit.serializers import CircuitSerializer
 from .models import Boulder
@@ -23,15 +23,12 @@ environ.Env.read_env()
 s3 = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
                   aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'))
 
-class StandardResultsSetPagination(PageNumberPagination):
-    page_size = 10
-
 class BoulderList(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = BoulderSerializer
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = BoulderFilter
-    pagination_class = StandardResultsSetPagination
+    pagination_class = StandardPagination
 
     def get_queryset(self):
         """

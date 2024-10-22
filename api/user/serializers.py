@@ -13,18 +13,17 @@ class PersonSerializer(serializers.ModelSerializer):
     profilePicUrl = serializers.CharField(source='image_url', read_only=True)
     profilePicWidth = serializers.CharField(source='image_width', read_only=True)
     profilePicHeight = serializers.CharField(source='image_height', read_only=True)
-    logbookCount = serializers.SerializerMethodField(read_only=True)
-    likesCount = serializers.SerializerMethodField(read_only=True)
-    bookmarksCount = serializers.SerializerMethodField(read_only=True)
-    creationsCount = serializers.SerializerMethodField(read_only=True)
+    # logbookCount = serializers.SerializerMethodField(read_only=True)
+    # likesCount = serializers.SerializerMethodField(read_only=True)
+    # bookmarksCount = serializers.SerializerMethodField(read_only=True)
+    # creationsCount = serializers.SerializerMethodField(read_only=True)
     gym = serializers.PrimaryKeyRelatedField(queryset=Gym.objects.all(), required=False, allow_null=True)
     spraywalls = SprayWallSerializer(many=True, source='gym.spraywall_set', required=False, allow_null=True)
 
     class Meta:
         model = Person
         fields = ['id', 'username', 'name', 'email', 'profilePicUrl', 
-                  'profilePicWidth', 'profilePicHeight', 'gym', 'spraywalls', 'logbookCount', 'likesCount',
-                  'bookmarksCount', 'creationsCount']
+                  'profilePicWidth', 'profilePicHeight', 'gym', 'spraywalls']
         
     # Gym data response. Could also do this instead: gym_details = GymSerializer(source='gym', read_only=True)
     def to_representation(self, instance):
@@ -46,17 +45,17 @@ class PersonSerializer(serializers.ModelSerializer):
             representation['spraywalls'] = []  # No spraywalls since no gym
         return representation
     
-    def get_logbookCount(self, obj: Person):
-        return Send.objects.filter(person=obj).count()
+    # def get_logbookCount(self, obj: Person):
+    #     return Send.objects.filter(person=obj).count()
     
-    def get_likesCount(self, obj: Person):
-        return Like.objects.filter(person=obj).count()
+    # def get_likesCount(self, obj: Person):
+    #     return Like.objects.filter(person=obj).count()
     
-    def get_bookmarksCount(self, obj: Person):
-        return Bookmark.objects.filter(person=obj).count()
+    # def get_bookmarksCount(self, obj: Person):
+    #     return Bookmark.objects.filter(person=obj).count()
     
-    def get_creationsCount(self, obj: Person):
-        return Boulder.objects.filter(setter=obj).count()
+    # def get_creationsCount(self, obj: Person):
+    #     return Boulder.objects.filter(setter=obj).count()
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod

@@ -8,8 +8,9 @@ class BoulderFilter(filters.FilterSet):
     grade = filters.RangeFilter(method='grade_method')
     activity = filters.CharFilter(method='activity_method')
     status = filters.CharFilter(method='status_method')
-    circuits = filters.BaseInFilter(method='circuits_method')
+    circuit = filters.CharFilter(method='circuit_method')
     sort = filters.CharFilter(method='sort_method')
+    exclude_ids = filters.CharFilter(method='exclude_ids_method')
 
     class Meta:
         model = Boulder
@@ -45,9 +46,13 @@ class BoulderFilter(filters.FilterSet):
                 queryset = queryset.filter(setter=self.request.user.id, publish=False)
         return queryset
     
-    def circuits_method(self, queryset, name, value):
-        circuits_id_arr = value
-        return queryset.filter(circuits__id__in=circuits_id_arr).distinct()
+    def circuit_method(self, queryset, name, value):
+        circuit_id = value
+        if circuit_id == 'null':
+            return queryset
+        else:
+            return queryset.filter(circuits__id=circuit_id)
+            
 
     def sort_method(self, queryset, name, value):
         match value:
@@ -58,6 +63,11 @@ class BoulderFilter(filters.FilterSet):
             case 'newest': # order by date created (newest to oldest)
                 queryset = queryset.order_by('-date_created')
         return queryset
+    
+    def exclude_ids_method(self, queryset, name, value):
+        # Exclude the IDs passed as a comma-separated string
+        exclude_ids = value.split(',')
+        return queryset.exclude(id__in=exclude_ids)
     
 class GymFilter(filters.FilterSet):
     search = filters.CharFilter(field_name='name', lookup_expr='icontains')
