@@ -9,7 +9,6 @@ from ..circuit.models import Circuit
 from utils.constants import grade_labels
 from utils.fields import UrlField, GradeField
 from utils.mixins import BoulderMixin
-from utils.test import create_blurred_placeholder
 
 class BoulderSerializer(serializers.ModelSerializer, BoulderMixin):
     url = UrlField(source='image_url', required=True)

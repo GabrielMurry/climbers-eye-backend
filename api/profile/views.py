@@ -1,14 +1,23 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from django.db.models import OuterRef, Exists, Subquery, Count, F
+from rest_framework.response import Response
+from urllib.parse import urlparse
 from ..like.models import Like
 from ..bookmark.models import Bookmark
 from ..send.models import Send
 from ..circuit.models import Circuit
 from ..boulder.models import Boulder
 from ..boulder.serializers import BoulderSerializer
+from ..user.serializers import PersonSerializer
+from ..user.models import Person
 from .serializers import LogbookSerializer
 from utils.pagination import StandardPagination
 from utils.constants import grade_labels
+import boto3, environ
+env = environ.Env()
+environ.Env.read_env()
+s3 = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
+                  aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'))
     
 class LogbookList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -193,3 +202,33 @@ class CreationList(generics.ListAPIView):
                 is_in_circuit=Exists(in_circuit_subquery)
             ).distinct().order_by('-date_created')
 
+class ProfileDetail(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PersonSerializer
+
+    def get_object(self):
+        user_id = self.request.user.id
+        return Person.objects.get(id=user_id)
+    
+    def patch(self, request, *args, **kwargs):
+        user_instance = self.get_object()
+        # Check if 'profilePicUrl' is in the request data
+        if 'profilePicUrl' in request.data:
+            self.delete_image_from_s3(user_instance.image_url)
+            data = {}
+            data['profilePicUrl'] = request.data['profilePicUrl']
+            data['profilePicWidth'] = request.data['profilePicWidth']
+            data['profilePicHeight'] = request.data['profilePicHeight']
+            # _full_data is the private attribute holding request.data
+            request._full_data = data
+        return super().patch(request, *args, **kwargs)
+    
+    def delete_image_from_s3(self, image_url):
+        try:
+            parsed_url = urlparse(image_url)
+            bucket_name = 'sprayimages'
+            s3_key = parsed_url.path.lstrip('/')
+            # Delete the object from the S3 bucket
+            s3.delete_object(Bucket=bucket_name, Key=s3_key)
+        except Exception as e:
+            return Response({"error": f"Failed to delete image from S3: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

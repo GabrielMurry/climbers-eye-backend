@@ -8,11 +8,12 @@ from ..like.models import Like
 from ..send.models import Send
 from ..bookmark.models import Bookmark
 from ..spraywall.serializers import SprayWallSerializer
+from utils.fields import UrlField
 
 class PersonSerializer(serializers.ModelSerializer):
-    profilePicUrl = serializers.CharField(source='image_url', read_only=True)
-    profilePicWidth = serializers.CharField(source='image_width', read_only=True)
-    profilePicHeight = serializers.CharField(source='image_height', read_only=True)
+    profilePicUrl = UrlField(source='image_url', allow_null=True, required=False)
+    profilePicWidth = serializers.CharField(source='image_width', allow_null=True, required=False)
+    profilePicHeight = serializers.CharField(source='image_height', allow_null=True, required=False)
     # logbookCount = serializers.SerializerMethodField(read_only=True)
     # likesCount = serializers.SerializerMethodField(read_only=True)
     # bookmarksCount = serializers.SerializerMethodField(read_only=True)
