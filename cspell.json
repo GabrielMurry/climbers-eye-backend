@@ -18,7 +18,8 @@
     "spraywalls",
     "botocore",
     "ascensionist",
-    "getchannel"
+    "getchannel",
+    "climberseye"
   ],
   "ignoreWords": [],
   "import": []

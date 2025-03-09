@@ -10,7 +10,7 @@ class BookmarkBoulder(generics.GenericAPIView, mixins.CreateModelMixin, mixins.D
         """
         Override to apply multiple filter criteria based on the request to get our Bookmark object.
         """
-        return Bookmark.objects.filter(boulder=self.kwargs['boulder_id'], person=self.kwargs['user_id'])
+        return Bookmark.objects.filter(boulder=self.kwargs['boulder_id'], person=self.request.user.id)
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)

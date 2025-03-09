@@ -8,7 +8,7 @@ class ImageProcessor:
     @staticmethod
     def prep_files(photo_file: UploadedFile, canvas_file: UploadedFile) -> tuple[Image.Image, Image.Image]:
         image = Image.open(photo_file).convert("RGBA")
-        canvas = Image.open(canvas_file).convert("RGBA")
+        canvas = Image.open(canvas_file)
         photo_image = ImageOps.exif_transpose(image)
         drawing_image = ImageOps.exif_transpose(canvas).resize(photo_image.size)
         return photo_image, drawing_image

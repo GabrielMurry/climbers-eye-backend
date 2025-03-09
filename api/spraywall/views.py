@@ -3,11 +3,14 @@ from .serializers import SprayWallSerializer
 from .models import SprayWall
 from urllib.parse import urlparse
 from rest_framework.response import Response
+from rest_framework.request import Request
 import boto3, environ
 env = environ.Env()
 environ.Env.read_env()
 s3 = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
                   aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'))
+from utils.image import TestImage
+from django.core.files.uploadedfile import UploadedFile
 
 class SpraywallList(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -17,16 +20,26 @@ class SpraywallList(generics.ListCreateAPIView):
         gym_id = self.kwargs['gym_id']
         return SprayWall.objects.filter(gym=gym_id)
     
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args, **kwargs):
         # Data payload is a multi part form data rather than json
         # Reconfigure data into json form
         data = {}
-        data['url'] = request.data['url']
-        data['name'] = request.data['name']
-        data['gym'] = request.data['gym']
-        data['width'] = request.data['width']
-        data['height'] = request.data['height']
-        # _full_data is the private attribute holding request.data
+        uploaded_file = request.FILES.get('image')
+        if not uploaded_file:
+            print("No file uploaded or file not found in request.FILES.")
+        # print(f"File received: {uploaded_file.name}, Size: {uploaded_file.size}, Content-Type: {uploaded_file.content}")
+        if not isinstance(uploaded_file, UploadedFile):
+            print("Invalid file object type.")
+        width = request.data.get('width')
+        height = request.data.get('height')
+        name = request.data.get('name')
+        gym = request.data.get('gym')
+        data['url'] = uploaded_file
+        data['name'] = name
+        data['width'] = width
+        data['height'] = height
+        data['gym'] = gym
+        # # _full_data is the private attribute holding request.data
         request._full_data = data
         return super().post(request, *args, **kwargs)
     

@@ -11,7 +11,7 @@ from utils.fields import UrlField, GradeField
 from utils.mixins import BoulderMixin
 
 class BoulderSerializer(serializers.ModelSerializer, BoulderMixin):
-    url = UrlField(source='image_url', required=True)
+    url = UrlField(source='image_url', required=True, label='boulder_image')
     width = serializers.CharField(source='image_width')
     height = serializers.CharField(source='image_height')
     matching = serializers.BooleanField()
@@ -41,11 +41,6 @@ class BoulderSerializer(serializers.ModelSerializer, BoulderMixin):
     
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        # print('hi')
-        # print(instance.image_url)
-        # if instance.name == 'Butter':
-        #     blur = create_blurred_placeholder(instance.image_url)
-        #     print(instance.name, blur)
         # Replace the setter ID with the username in the serialized representation
         representation['setter'] = instance.setter.username if instance.setter else None
         return representation

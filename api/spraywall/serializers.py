@@ -4,7 +4,7 @@ from ..gym.models import Gym
 from utils.fields import UrlField
 
 class SprayWallSerializer(serializers.ModelSerializer):
-    url = UrlField(source='image_url', required=True)
+    url = UrlField(source='image_url', required=True, label='spraywall_image') # label is for identifying which prefix (folder) this image should go under in s3 bucket.
     width = serializers.CharField(source='image_width', required=True)
     height = serializers.CharField(source='image_height', required=True)
     gym = serializers.PrimaryKeyRelatedField(queryset=Gym.objects.all())  # Use PrimaryKeyRelatedField

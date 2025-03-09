@@ -10,7 +10,7 @@ class LikeBoulder(generics.GenericAPIView, mixins.CreateModelMixin, mixins.Destr
         """
         Override to apply multiple filter criteria based on the request to get our Like object.
         """
-        return Like.objects.filter(boulder=self.kwargs['boulder_id'], person=self.kwargs['user_id'])
+        return Like.objects.filter(boulder=self.kwargs['boulder_id'], person=self.request.user.id)
 
     def post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)

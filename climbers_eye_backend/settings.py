@@ -31,7 +31,7 @@ DEBUG = False
 ALLOWED_HOSTS = ['climberseye-django-54eb29e79683.herokuapp.com']
 CORS_ORIGIN_ALLOW_ALL = False # Change it in production and specify your own origins
 
-CSRF_TRUSTED_ORIGINS = ['exp://192.168.50.29:8081', 'exp://10.0.0.10:8081']
+CSRF_TRUSTED_ORIGINS = ['exp://192.168.50.195:8081', 'exp://192.168.50.20:8081', 'exp://10.0.0.10:8081']
 
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 
@@ -168,7 +168,8 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Your local development environment
     "https://climberseye-django-54eb29e79683.herokuapp.com",  # Your Heroku app
-    "exp://192.168.50.30:8081",  # Expo Go development server
+    "exp://192.168.50.195:8081",  # Expo Go development server
+    "exp://192.168.50.20:8081",  # Expo Go development server
     "exp://10.0.0.10:8081",  # Expo Go development server (Alanna)
 ]
 

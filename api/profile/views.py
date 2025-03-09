@@ -88,9 +88,9 @@ class LogbookList(generics.ListAPIView):
             # Loop through all the possible grades and append the count or 0 if not present
             for grade in grade_labels:
                 if grade in grade_count_dict:
-                    grade_chart.append({grade: grade_count_dict[grade]})
+                    grade_chart.append({'label': grade, 'value': grade_count_dict[grade]})
                 else:
-                    grade_chart.append({grade: 0})
+                    grade_chart.append({'label': grade, 'value': 0})
 
             # Add chart data to the response
             response.data['grade_chart'] = grade_chart

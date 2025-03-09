@@ -13,7 +13,10 @@ from ..send.models import Send
 from ..bookmark.models import Bookmark
 from utils.filters import BoulderFilter
 from utils.image_processing import ImageProcessor
+from rest_framework.request import Request
+from utils.image import TestImage
 from urllib.parse import urlparse
+from django.core.files.uploadedfile import UploadedFile
 import boto3
 import environ
 env = environ.Env()
@@ -70,7 +73,40 @@ class BoulderList(generics.ListCreateAPIView):
                 is_bookmarked=Exists(bookmarked_subquery),
                 is_sent=Exists(sent_subquery),
                 is_in_circuit=Exists(in_circuit_subquery)
-            ).distinct() # before pagination, ensure only distinct boulders are returned. - Avoids duplicates that may have arose from annotate or select_related
+            ).distinct()
+    
+    def post(self, request: Request, *args, **kwargs):
+        data = {}
+        uploaded_file = request.FILES.get('image')
+        if not uploaded_file:
+            print('No file uploaded or file not found in request.FILES.')
+        if not isinstance(uploaded_file, UploadedFile):
+            print('Invalid file object type.')
+        name = request.data.get('name')
+        description = request.data.get('description')
+        publish = request.data.get('publish')
+        matching = request.data.get('matching')
+        feetFollowHands = request.data.get('feetFollowHands')
+        kickboardOn = request.data.get('kickboardOn')
+        width = request.data.get('width')
+        height = request.data.get('height')
+        setter = request.data.get('setter')
+        spraywall = request.data.get('spraywall')
+        data['url'] = uploaded_file
+        data['name'] = name
+        data['description'] = description
+        data['publish'] = True if publish == 'true' else False
+        data['matching'] = True if matching == 'true' else False
+        data['feetFollowHands'] = True if feetFollowHands == 'true' else False
+        data['kickboardOn'] = True if kickboardOn == 'true' else False
+        data['width'] = width
+        data['height'] = height
+        data['setter'] = setter
+        data['spraywall'] = spraywall
+        print(data)
+        # _full_data is the private attribute holding request.data
+        request._full_data = data
+        return super().post(request, *args, **kwargs)
     
 class BoulderDetail(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -97,17 +133,19 @@ class BoulderDetail(generics.RetrieveUpdateDestroyAPIView):
 class CompositeBoulderImage(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request: Request, *args, **kwargs):
         try:
-            print(request.data['test'])
-            photo_image, drawing_image = ImageProcessor.prep_files(
-                request.FILES['image'], request.FILES['canvas']
-            )
-            drawing_image = ImageProcessor.increase_drawing_opacity(drawing_image)
-            drawing_image = ImageProcessor.mask_drawing(drawing_image, photo_image)
-            result_image = ImageProcessor.combine_images(drawing_image, photo_image)
-            base64_image = ImageProcessor.convert_image_to_base64(result_image)
-            return Response({'uri': f'data:image/png;base64,{base64_image}', 'width': photo_image.size[0], 'height': photo_image.size[1]}, status=status.HTTP_200_OK)
+            photo_file = request.FILES.get('photo')
+            canvas_file = request.FILES.get('canvas')
+            photo_image, drawing_image = ImageProcessor.prep_files(photo_file, canvas_file)
+            photo_image.show()
+            drawing_image.show()
+            return Response(status=status.HTTP_200_OK)
+            # drawing_image = ImageProcessor.increase_drawing_opacity(drawing_image)
+            # drawing_image = ImageProcessor.mask_drawing(drawing_image, photo_image)
+            # result_image = ImageProcessor.combine_images(drawing_image, photo_image)
+            # base64_image = ImageProcessor.convert_image_to_base64(result_image)
+            # return Response({'uri': f'data:image/jpg;base64,{base64_image}', 'width': photo_image.size[0], 'height': photo_image.size[1]}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

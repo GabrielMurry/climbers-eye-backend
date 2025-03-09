@@ -19,7 +19,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        print(serializer.validated_data)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 class UserSignup(generics.CreateAPIView):
