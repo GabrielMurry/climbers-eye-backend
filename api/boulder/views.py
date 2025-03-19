@@ -1,6 +1,5 @@
 from rest_framework import status, generics, permissions, mixins
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from django.db.models import OuterRef, Exists, Q
 from django_filters import rest_framework as filters
 from utils.pagination import StandardPagination
@@ -12,17 +11,16 @@ from ..like.models import Like
 from ..send.models import Send
 from ..bookmark.models import Bookmark
 from utils.filters import BoulderFilter
-from utils.image_processing import ImageProcessor
 from rest_framework.request import Request
-from utils.image import TestImage
+from mypy_boto3_s3 import S3Client
 from urllib.parse import urlparse
 from django.core.files.uploadedfile import UploadedFile
 import boto3
 import environ
 env = environ.Env()
 environ.Env.read_env()
-s3 = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
-                  aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'))
+s3: S3Client = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
+                  aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'), region_name='us-west-1')
 
 class BoulderList(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -82,6 +80,8 @@ class BoulderList(generics.ListCreateAPIView):
             print('No file uploaded or file not found in request.FILES.')
         if not isinstance(uploaded_file, UploadedFile):
             print('Invalid file object type.')
+        # altWallImage is an optional upload so this will either get the alt wall file or return None.
+        uploaded_alt_wall_file = request.FILES.get('altWallImage')
         name = request.data.get('name')
         description = request.data.get('description')
         publish = request.data.get('publish')
@@ -103,7 +103,7 @@ class BoulderList(generics.ListCreateAPIView):
         data['height'] = height
         data['setter'] = setter
         data['spraywall'] = spraywall
-        print(data)
+        data['altWallUrl'] = uploaded_alt_wall_file
         # _full_data is the private attribute holding request.data
         request._full_data = data
         return super().post(request, *args, **kwargs)
@@ -118,36 +118,19 @@ class BoulderDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def delete(self, request, *args, **kwargs):
         boulder_row = Boulder.objects.get(id=kwargs['pk'])
-        # delete boulder image from amazon s3
+        # Delete boulder image from amazon s3
         self.delete_image_from_s3(boulder_row.image_url)
+        # Delete the alternative spray wall image for the boulder if it exists.
+        if boulder_row.alt_wall_image_url:
+            self.delete_image_from_s3(boulder_row.alt_wall_image_url)
         return self.destroy(request, *args, **kwargs)
     
     @staticmethod
-    def delete_image_from_s3(self, image_url: str):
+    def delete_image_from_s3(image_url: str):
         parsed_url = urlparse(image_url)
-        bucket_name = 'sprayimages'
         s3_key = parsed_url.path.lstrip('/')
         # Delete the object from the S3 bucket
-        s3.delete_object(Bucket=bucket_name, Key=s3_key)
-
-class CompositeBoulderImage(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request: Request, *args, **kwargs):
-        try:
-            photo_file = request.FILES.get('photo')
-            canvas_file = request.FILES.get('canvas')
-            photo_image, drawing_image = ImageProcessor.prep_files(photo_file, canvas_file)
-            photo_image.show()
-            drawing_image.show()
-            return Response(status=status.HTTP_200_OK)
-            # drawing_image = ImageProcessor.increase_drawing_opacity(drawing_image)
-            # drawing_image = ImageProcessor.mask_drawing(drawing_image, photo_image)
-            # result_image = ImageProcessor.combine_images(drawing_image, photo_image)
-            # base64_image = ImageProcessor.convert_image_to_base64(result_image)
-            # return Response({'uri': f'data:image/jpg;base64,{base64_image}', 'width': photo_image.size[0], 'height': photo_image.size[1]}, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        s3.delete_object(Bucket=env('BUCKET'), Key=s3_key)
 
 class BoulderInCircuit(generics.GenericAPIView, mixins.CreateModelMixin, mixins.DestroyModelMixin):
     permission_classes = [permissions.IsAuthenticated]

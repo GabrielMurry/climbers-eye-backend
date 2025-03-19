@@ -26,9 +26,10 @@ environ.Env.read_env(env_file=str(BASE_DIR / '.env'))
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['climberseye-django-54eb29e79683.herokuapp.com']
+# ALLOWED_HOSTS = ['*']
 CORS_ORIGIN_ALLOW_ALL = False # Change it in production and specify your own origins
 
 CSRF_TRUSTED_ORIGINS = ['exp://192.168.50.195:8081', 'exp://192.168.50.20:8081', 'exp://10.0.0.10:8081']
@@ -171,6 +172,7 @@ CORS_ALLOWED_ORIGINS = [
     "exp://192.168.50.195:8081",  # Expo Go development server
     "exp://192.168.50.20:8081",  # Expo Go development server
     "exp://10.0.0.10:8081",  # Expo Go development server (Alanna)
+    "http://192.168.50.195:8000",  # Django backend on Mac
 ]
 
 # Custom user model

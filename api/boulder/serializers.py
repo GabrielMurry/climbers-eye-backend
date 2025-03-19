@@ -14,6 +14,7 @@ class BoulderSerializer(serializers.ModelSerializer, BoulderMixin):
     url = UrlField(source='image_url', required=True, label='boulder_image')
     width = serializers.CharField(source='image_width')
     height = serializers.CharField(source='image_height')
+    altWallUrl = UrlField(source='alt_wall_image_url', required=False, allow_null=True, label='alt_wall_image')
     matching = serializers.BooleanField()
     publish = serializers.BooleanField()
     feetFollowHands = serializers.BooleanField(source='feet_follow_hands')
@@ -33,7 +34,7 @@ class BoulderSerializer(serializers.ModelSerializer, BoulderMixin):
     class Meta:
         model = Boulder
         fields = [
-            'id', 'name', 'description', 'url', 'width', 'height',
+            'id', 'name', 'description', 'url', 'width', 'height', 'altWallUrl',
             'matching', 'publish', 'feetFollowHands', 'kickboardOn', 'sends', 'grade', 'quality', 'isLiked', 
             'isBookmarked', 'isSent', 'inCircuit', 'userSendsCount', 'date',
             'spraywall', 'setter', 'firstAscensionist'

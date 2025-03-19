@@ -6,7 +6,6 @@ env = environ.Env()
 environ.Env.read_env()
 from botocore.config import Config
 from mypy_boto3_s3 import S3Client
-from utils.image_processing import ImageProcessor
 
 BUCKET = 'climberseye'
 PREFIX_FOLDER = 'boulder'
@@ -22,8 +21,9 @@ class ImageUploadTest(TestCase):
     #     s3.upload_file(Filename='images/cat.jpg', Bucket=BUCKET, Key=s3_key)   
 
     def test_image_composite(self):
-        photo_image, drawing_image = ImageProcessor.prep_files('images/photo.jpg', 'images/canvas.jpg')
-        drawing_image = ImageProcessor.increase_drawing_opacity(drawing_image)
-        drawing_image = ImageProcessor.mask_drawing(drawing_image, photo_image)
-        drawing_image.show()
+        pass
+    #     photo_image, drawing_image = ImageProcessor.prep_files('images/photo.jpg', 'images/canvas.jpg')
+    #     drawing_image = ImageProcessor.increase_drawing_opacity(drawing_image)
+    #     drawing_image = ImageProcessor.mask_drawing(drawing_image, photo_image)
+    #     drawing_image.show()
         # result_image = ImageProcessor.combine_images(drawing_image, photo_image)

@@ -9,8 +9,7 @@ from io import BytesIO
 from typing import Optional
 env = environ.Env()
 environ.Env.read_env()
-s3: S3Client = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
-                  aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'), region_name='us-west-1')
+s3: S3Client = boto3.client(service_name='s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'), aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'), region_name='us-west-1')
 
 MAX_SIZE_MB = 1
 MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024 
@@ -38,7 +37,8 @@ class UrlField(serializers.Field):
             return None
         try:
             folder = self.get_prefix_folder()
-            s3_key = f"{folder}/{image.name}-{str(uuid.uuid4())}.jpg"
+            type = self.get_image_type()
+            s3_key = f"{folder}/{image.name}-{str(uuid.uuid4())}.{type}"
             s3.upload_fileobj(Fileobj=image, Bucket=BUCKET, Key=s3_key, ExtraArgs={'ContentType': image.content_type})
             image_url = f"https://{BUCKET}.s3.amazonaws.com/{s3_key}"
             return image_url
@@ -55,8 +55,17 @@ class UrlField(serializers.Field):
                 return 'boulder'
             case 'profile_image':
                 return 'profile'
+            case 'alt_wall_image':
+                return 'alt_spraywall'
             case _:
                 pass
+    
+    def get_image_type(self):
+        match self.label:
+            case 'boulder_image':
+                return 'png'
+            case _:
+                return 'jpg'
     
 class GradeField(serializers.Field):
     def to_internal_value(self, grade: str):
