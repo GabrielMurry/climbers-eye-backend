@@ -28,11 +28,11 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['climberseye-django-54eb29e79683.herokuapp.com']
-# ALLOWED_HOSTS = ['*']
-CORS_ORIGIN_ALLOW_ALL = False # Change it in production and specify your own origins
+ALLOWED_HOSTS = ['*']
 
-CSRF_TRUSTED_ORIGINS = ['exp://192.168.50.195:8081', 'exp://192.168.50.20:8081', 'exp://10.0.0.10:8081']
+CORS_ORIGIN_ALLOW_ALL = True # Change it in production and specify your own origins
+
+CSRF_TRUSTED_ORIGINS = ['http://192.168.50.195:8081', 'exp://192.168.50.20:8081', 'exp://10.0.0.10:8081']
 
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 
@@ -169,7 +169,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Your local development environment
     "https://climberseye-django-54eb29e79683.herokuapp.com",  # Your Heroku app
-    "exp://192.168.50.195:8081",  # Expo Go development server
+    "http://192.168.50.195:8081",  # Expo Go development server
     "exp://192.168.50.20:8081",  # Expo Go development server
     "exp://10.0.0.10:8081",  # Expo Go development server (Alanna)
     "http://192.168.50.195:8000",  # Django backend on Mac

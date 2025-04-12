@@ -37,7 +37,9 @@ class PersonSerializer(serializers.ModelSerializer):
                 'address': gym_instance.address,
                 'latitude': gym_instance.latitude,
                 'longitude': gym_instance.longitude,
-                'type': gym_instance.type
+                'type': gym_instance.type,
+                'date_created': gym_instance.date_created,
+                'place_id': gym_instance.place_id,
             }
             # Handle spraywalls if gym exists
             representation['spraywalls'] = SprayWallSerializer(gym_instance.spraywall_set, many=True).data
