@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import temp_csrf_token, update_token, CustomTokenObtainPairView, LogoutView, UserSignup
+from .views import temp_csrf_token, update_token, CustomTokenObtainPairView, LogoutView, UserSignup, AppleSignUp
 
 app_name = 'user'
 
@@ -9,4 +9,5 @@ urlpatterns = [
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('signup/', UserSignup.as_view(), name='signup'),
+    path('apple/', AppleSignUp.as_view(), name='apple_signup')
 ]

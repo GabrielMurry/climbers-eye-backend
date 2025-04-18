@@ -10,7 +10,6 @@ class BoulderFilter(filters.FilterSet):
     status = filters.CharFilter(method='status_method')
     circuit = filters.CharFilter(method='circuit_method')
     sort = filters.CharFilter(method='sort_method')
-    exclude_ids = filters.CharFilter(method='exclude_ids_method')
 
     class Meta:
         model = Boulder
@@ -63,11 +62,6 @@ class BoulderFilter(filters.FilterSet):
             case 'newest': # order by date created (newest to oldest)
                 queryset = queryset.order_by('-date_created')
         return queryset
-    
-    def exclude_ids_method(self, queryset, name, value):
-        # Exclude the IDs passed as a comma-separated string
-        exclude_ids = value.split(',')
-        return queryset.exclude(id__in=exclude_ids)
     
 class GymFilter(filters.FilterSet):
     search = filters.CharFilter(field_name='name', lookup_expr='icontains')

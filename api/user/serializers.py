@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.middleware.csrf import get_token as get_csrf_token
-from .models import Person
+from .models import Person, AppleAccount
 from ..boulder.models import Boulder
 from ..gym.models import Gym
 from ..like.models import Like
@@ -71,6 +71,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
+        print('Testing serializer validation...')
         try:
             # Authenticate (validate) the user with username and password in 'attrs'
             # This parent validate function will then call our get_token custom class method
@@ -94,3 +95,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'accessToken': jwt_user_tokens['access'],
             'refreshToken': jwt_user_tokens['refresh'],
         }
+
+class AppleAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppleAccount
+        fields = '__all__'

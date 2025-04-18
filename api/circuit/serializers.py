@@ -3,7 +3,8 @@ from .models import Circuit
 from ..boulder.models import Boulder
 
 class CircuitSerializer(serializers.ModelSerializer):
-    boulders = serializers.PrimaryKeyRelatedField(
+    boulderIds = serializers.PrimaryKeyRelatedField(
+        source='boulders',
         many=True, 
         queryset=Boulder.objects.all(),
         required=False,    # Makes the field optional
@@ -13,4 +14,7 @@ class CircuitSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Circuit
-        fields = '__all__'
+        fields = [
+            'id', 'color', 'description', 'name', 'person', 'private',
+            'spraywall', 'boulderIds'
+        ]

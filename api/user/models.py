@@ -39,3 +39,12 @@ class Person(AbstractBaseUser):
 
     def __str__(self):
         return self.username
+    
+class AppleAccount(models.Model):
+    user = models.OneToOneField(Person, on_delete=models.CASCADE, related_name='apple_account')
+    apple_sub = models.CharField(max_length=255, unique=True)
+    is_private_email = models.BooleanField(default=False)
+    real_user_status = models.IntegerField(null=True, blank=True)
+
+    def __str__(self):
+        return f"AppleAccount for {self.user.username}"
