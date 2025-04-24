@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.middleware.csrf import get_token as get_csrf_token
-from .models import Person, AppleAccount
+from .models import Person, AppleAccount, GoogleAccount
 from ..boulder.models import Boulder
 from ..gym.models import Gym
 from ..like.models import Like
@@ -99,4 +99,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class AppleAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppleAccount
+        fields = '__all__'
+
+class GoogleAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GoogleAccount
         fields = '__all__'

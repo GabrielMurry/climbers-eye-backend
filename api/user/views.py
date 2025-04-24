@@ -9,14 +9,14 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from .serializers import CustomTokenObtainPairSerializer, PersonSerializer, AppleAccountSerializer
+from .serializers import CustomTokenObtainPairSerializer, PersonSerializer, AppleAccountSerializer, GoogleAccountSerializer
 from rest_framework.request import Request
 import requests, jwt
 from rest_framework import status, generics, permissions
 import base64, uuid
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
-from .models import AppleAccount, Person
+from .models import AppleAccount, Person, GoogleAccount
 import environ
 env = environ.Env()
 environ.Env.read_env()
@@ -106,50 +106,67 @@ def update_token(request):
         except TokenError as e:
             # Handle invalid or expired token
             return Response({"error", str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+        
+def base64url_decode(val):
+    val += '=' * (-len(val) % 4)  # add padding if missing
+    return base64.urlsafe_b64decode(val)
+        
+def rsa_public_key_from_jwk(jwk):
+    n = int.from_bytes(base64url_decode(jwk['n']), byteorder='big')
+    e = int.from_bytes(base64url_decode(jwk['e']), byteorder='big')
+    public_numbers = rsa.RSAPublicNumbers(e, n)
+    return public_numbers.public_key(backend=default_backend())
+
+def validate_identity_token(identity_token: str, provider_keys: list, issuer: str):
+    try:
+        unverified_header = jwt.get_unverified_header(identity_token)
+        provider_key = None
+        for key in provider_keys:
+            if key['kid'] == unverified_header['kid']:
+                provider_key = key
+        if not provider_key:
+            raise ValueError("Matching public key not found.")
+        rsa_public_key = rsa_public_key_from_jwk(provider_key)
+        # Decode and verify the identity token
+        claims = jwt.decode(
+            identity_token,
+            rsa_public_key,
+            algorithms=[provider_key['alg']],
+            audience=env('GOOGLE_CLIENT_ID'),
+            issuer=env('GOOGLE_ISSUER')
+        )
+        return claims
+    except:
+        print('Identity token validation error.')
+
+def get_provider_keys(provider: str):
+    match provider:
+        case 'apple':
+            return requests.get('https://appleid.apple.com/auth/keys').json()['keys']
+        case 'google':
+            return requests.get('https://www.googleapis.com/oauth2/v3/certs').json()['keys']
+        case _:
+            raise Exception("Get keys error. Invalid provider.")
+        
+def get_provider_issuer(provider: str):
+    match provider:
+        case 'apple':
+            return env('APPLE_ISSUER')
+        case 'google':
+            return env('GOOGLE_ISSUER')
+        case _:
+            raise Exception("Get issuer error. Invalid provider.")
+
+def generate_username(first_name: str, last_name: str):
+    username = f"{first_name}{last_name}".replace(" ", "")
+    if Person.objects.filter(username=username).exists():
+        suffix = uuid.uuid4().hex[:6]
+        return f"{username}{suffix}"
+    else:
+        return username
 
 class AppleSignUp(APIView):
     serializer_class = PersonSerializer
-
-    def base64url_decode(self, val):
-        val += '=' * (-len(val) % 4)  # add padding if missing
-        return base64.urlsafe_b64decode(val)
-
-    def rsa_public_key_from_jwk(self, jwk):
-        n = int.from_bytes(self.base64url_decode(jwk['n']), byteorder='big')
-        e = int.from_bytes(self.base64url_decode(jwk['e']), byteorder='big')
-        public_numbers = rsa.RSAPublicNumbers(e, n)
-        return public_numbers.public_key(backend=default_backend())
-    
-    def generate_username(self, first_name: str, last_name: str):
-        username = f"{first_name}{last_name}".replace(" ", "")
-        if Person.objects.filter(username=username).exists():
-            suffix = uuid.uuid4().hex[:6]
-            return f"{username}{suffix}"
-        else:
-            return username
-    
-    def validate_apple_identity_token(self, identity_token):
-        try:
-            unverified_header = jwt.get_unverified_header(identity_token)
-            apple_keys = requests.get('https://appleid.apple.com/auth/keys').json()['keys']
-            apple_key = None
-            for key in apple_keys:
-                if key['kid'] == unverified_header['kid']:
-                    apple_key = key
-            if not apple_key:
-                raise ValueError("Matching Apple public key not found.")
-            rsa_public_key = self.rsa_public_key_from_jwk(apple_key)
-            # Decode and verify the identity token
-            claims = jwt.decode(
-                identity_token,
-                rsa_public_key,
-                algorithms=[apple_key['alg']],
-                audience=env('APP_BUNDLE_ID'),
-                issuer=env('APPLE_ISSUER')
-            )
-            return claims
-        except:
-            print('Apple auth validation error.')
 
     def get_user_from_apple_claims(self, claims):
         # Check if Apple user already exists
@@ -164,14 +181,16 @@ class AppleSignUp(APIView):
         # User clicked to sign in (sign up) with their apple account
         first_name = request.data.get('firstName')
         last_name = request.data.get('lastName')
-
-        claims = self.validate_apple_identity_token(request.data.get('identityToken'))
+        identity_token = request.data.get('identityToken')
+        apple_keys = get_provider_keys('apple')
+        issuer = get_provider_issuer('apple')
+        claims = validate_identity_token(identity_token, apple_keys, issuer)
 
         user = self.get_user_from_apple_claims(claims)
         if user is None:
             # Save user
             user_data = {
-                'username': self.generate_username(first_name, last_name),
+                'username': generate_username(first_name, last_name),
                 'email': claims.get('email'),
                 'password': None,
             }
@@ -188,6 +207,63 @@ class AppleSignUp(APIView):
             apple_acc_serializer = AppleAccountSerializer(data=apple_acc_data)
             apple_acc_serializer.is_valid(raise_exception=True)
             apple_acc_serializer.save()
+            # Send tokens and user data
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': user_serializer.data,
+                'csrfToken': get_csrf_token(request),
+                'refreshToken': str(refresh),
+                'accessToken': str(refresh.access_token),
+            }, status=status.HTTP_201_CREATED)
+        else:
+            # User already exists, send their data and tokens 
+            user_data = PersonSerializer(user).data
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': user_data,
+                'csrfToken': get_csrf_token(request),
+                'refreshToken': str(refresh),
+                'accessToken': str(refresh.access_token),
+            }, status=status.HTTP_200_OK)
+
+class GoogleSignUp(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get_user_from_google_claims(self, claims):
+        # Check if Google user already exists
+        google_sub = claims.get('sub')
+        try:
+            google_account = GoogleAccount.objects.select_related('user').get(google_sub=google_sub)
+            return google_account.user
+        except GoogleAccount.DoesNotExist:
+            return None
+
+    def post(self, request: Request):
+        first_name = request.data.get('firstName')
+        last_name = request.data.get('lastName')
+        identity_token = request.data.get('identityToken')
+        google_keys = get_provider_keys('google')
+        issuer = get_provider_issuer('google')
+        claims = validate_identity_token(identity_token, google_keys, issuer)
+        user = self.get_user_from_google_claims(claims)
+        if user is None:
+            # Save user
+            user_data = {
+                'username': generate_username(first_name, last_name),
+                'email': claims.get('email'),
+                'password': None,
+            }
+            user_serializer = PersonSerializer(data=user_data)
+            user_serializer.is_valid(raise_exception=True)
+            user = user_serializer.save()
+            # Save user apple account details
+            google_acc_data = {
+                'user': user.id,
+                'google_sub': claims.get('sub'),
+            }
+            google_acc_serializer = GoogleAccountSerializer(data=google_acc_data)
+            google_acc_serializer.is_valid(raise_exception=True)
+            google_acc_serializer.save()
             # Send tokens and user data
             refresh = RefreshToken.for_user(user)
             return Response({

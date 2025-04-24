@@ -32,8 +32,6 @@ ALLOWED_HOSTS = ['*']
 
 CORS_ORIGIN_ALLOW_ALL = True # Change it in production and specify your own origins
 
-CSRF_TRUSTED_ORIGINS = ['http://192.168.50.195:8081', 'exp://192.168.50.20:8081', 'exp://10.0.0.10:8081']
-
 SESSION_COOKIE_AGE = 3600  # 1 hour (in seconds)
 
 # Application definition
@@ -166,13 +164,19 @@ REST_FRAMEWORK = {
     ),
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Your local development environment
-    "https://climberseye-django-54eb29e79683.herokuapp.com",  # Your Heroku app
-    "http://192.168.50.195:8081",  # Expo Go development server
-    "exp://192.168.50.20:8081",  # Expo Go development server
-    "exp://10.0.0.10:8081",  # Expo Go development server (Alanna)
-    "http://192.168.50.195:8000",  # Django backend on Mac
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",  # Your local development environment
+#     "https://climberseye-django-54eb29e79683.herokuapp.com",  # Your Heroku app
+#     "http://192.168.50.195:8081",  # Expo Go development server
+#     "exp://10.0.0.10:8081",  # Expo Go development server (Alanna)
+#     "http://192.168.50.195:8000",  # Django backend on Mac
+#     "http://192.168.50.20:8000",  # Django backend on Mac
+# ]
+
+CORS_ALLOW_ALL_ORIGINS = True  # only for dev!
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "access-control-allow-origin",
 ]
 
 # Custom user model
@@ -205,7 +209,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AWS_ACCESS_KEY_ID = env('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = env('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = 'sprayimages'
+AWS_STORAGE_BUCKET_NAME = env('BUCKET')
 AWS_QUERYSTRING_AUTH = False
 AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
 AWS_S3_OBJECT_PARAMETERS = {

@@ -47,4 +47,11 @@ class AppleAccount(models.Model):
     real_user_status = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"AppleAccount for {self.user.username}"
+        return f"Apple account for {self.user.username}."
+
+class GoogleAccount(models.Model):
+    user = models.OneToOneField(Person, on_delete=models.CASCADE, related_name='google_account')
+    google_sub = models.CharField(max_length=255, unique=True)
+
+    def __str__(self):
+        return f"Google account for {self.user.username}."
