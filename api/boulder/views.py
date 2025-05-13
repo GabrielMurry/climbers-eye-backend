@@ -10,9 +10,14 @@ from ..circuit.models import Circuit
 from ..like.models import Like
 from ..send.models import Send
 from ..bookmark.models import Bookmark
+from..spraywall.models import SprayWall
 from utils.filters import BoulderFilter
 from rest_framework.request import Request
 from mypy_boto3_s3 import S3Client
+from PIL import Image, ImageOps
+import requests, sys
+from django.core.files.uploadedfile import InMemoryUploadedFile
+from io import BytesIO
 from urllib.parse import urlparse
 from django.core.files.uploadedfile import UploadedFile
 import boto3
@@ -73,15 +78,62 @@ class BoulderList(generics.ListCreateAPIView):
                 is_in_circuit=Exists(in_circuit_subquery)
             ).distinct()
     
+    @staticmethod
+    def resize_image_to_720p(image: UploadedFile) -> Image:
+        """
+        Resizes an UploadedFile image to 720p (1280x720) using PIL.
+
+        Args:
+            image (UploadedFile): Image of UploadedFile type.
+        """
+        try:
+            img = Image.open(image)
+            img = ImageOps.exif_transpose(img)
+            width, height = img.size
+
+            # Calculate the new dimensions while maintaining aspect ratio
+            if width / height > 1280 / 720:
+                new_width = 1280
+                new_height = int(height * (1280 / width))
+            else:
+                new_height = 720
+                new_width = int(width * (720 / height))
+
+            resized_img = img.resize((new_width, new_height), Image.LANCZOS)
+            resized_img.save("resized_image.jpg", format="png", optimize=True, quality=85)
+            return resized_img
+        except FileNotFoundError:
+            print(f"Error: Image file not found at {image}")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+    
     def post(self, request: Request, *args, **kwargs):
         data = {}
-        uploaded_file = request.FILES.get('image')
-        if not uploaded_file:
+        uploaded_boulder_file = request.FILES.get('boulderImage')
+        if not uploaded_boulder_file:
             print('No file uploaded or file not found in request.FILES.')
-        if not isinstance(uploaded_file, UploadedFile):
+        if not isinstance(uploaded_boulder_file, UploadedFile):
             print('Invalid file object type.')
         # altWallImage is an optional upload so this will either get the alt wall file or return None.
         uploaded_alt_wall_file = request.FILES.get('altWallImage')
+        thumbnail_uploaded_file: InMemoryUploadedFile | None = None
+        if uploaded_alt_wall_file:
+            # Make a copy of the uploaded file alt wall. Performing image manipulation with PIL will usually mutate the variable.
+            image_copy = BytesIO(uploaded_alt_wall_file.read())
+            uploaded_alt_wall_file.seek(0)
+            thumbnail = self.resize_image_to_720p(image_copy)
+            # Convert thumbnail image (which is a PIL image) to an InMemoryUploadedFile type.
+            in_mem_file = BytesIO()
+            thumbnail.save(in_mem_file, format="JPEG")
+            in_mem_file.seek(0)
+            thumbnail_uploaded_file = InMemoryUploadedFile(
+                file=in_mem_file,
+                field_name=None,
+                name=request.data.get('name'),
+                content_type=f'image/jpg',
+                size=in_mem_file.getbuffer().nbytes,
+                charset=None
+            )
         name = request.data.get('name')
         description = request.data.get('description')
         publish = request.data.get('publish')
@@ -92,7 +144,7 @@ class BoulderList(generics.ListCreateAPIView):
         height = request.data.get('height')
         setter = request.data.get('setter')
         spraywall = request.data.get('spraywall')
-        data['url'] = uploaded_file
+        data['url'] = uploaded_boulder_file
         data['name'] = name
         data['description'] = description
         data['publish'] = True if publish == 'true' else False
@@ -104,6 +156,7 @@ class BoulderList(generics.ListCreateAPIView):
         data['setter'] = setter
         data['spraywall'] = spraywall
         data['altWallUrl'] = uploaded_alt_wall_file
+        data['altWallThumbnailUrl'] = thumbnail_uploaded_file
         # _full_data is the private attribute holding request.data
         request._full_data = data
         return super().post(request, *args, **kwargs)

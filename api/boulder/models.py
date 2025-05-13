@@ -26,6 +26,7 @@ class Boulder(models.Model):
     image_width = models.CharField(max_length=10, default=1000)
     image_height = models.CharField(max_length=10, default=1000)
     alt_wall_image_url = models.TextField(blank=True, null=True, help_text='Alternative image of the default spray wall for this particular boulder.')
+    alt_wall_thumbnail_url = models.TextField(blank=True, null=True, help_text='Alternative spray wall image thumbnail for boulder.')
     date_created = models.DateTimeField(auto_now_add=True, db_index=True)
     # foreign keys
     spraywall = models.ForeignKey(SprayWall, on_delete=models.CASCADE)

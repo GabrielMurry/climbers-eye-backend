@@ -32,7 +32,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class UserSignup(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
-    def create(self, request, *args, **kwargs):
+    def create(self, request: Request, *args, **kwargs):
         serializer = PersonSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -40,9 +40,21 @@ class UserSignup(generics.CreateAPIView):
         refresh = RefreshToken.for_user(user)
         return Response({
             'user': serializer.data,
+            'csrfToken': get_csrf_token(request),
             'refreshToken': str(refresh),
             'accessToken': str(refresh.access_token),
         }, status=status.HTTP_201_CREATED)
+
+class CheckEmail(APIView):
+    @staticmethod
+    def email_exists(email: str):
+        return Person.objects.filter(email=email).exists()
+
+    def post(self, request: Request):
+        email = request.data.get('email')
+        if (self.email_exists(email)):
+            return Response(data={'exists': True}, status=status.HTTP_200_OK)
+        return Response(data={'exists': False}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def temp_csrf_token(request):

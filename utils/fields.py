@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .constants import grade_labels
 import uuid, base64, boto3, environ
 from boto3.s3.transfer import TransferConfig
-from django.core.files.uploadedfile import UploadedFile
+from django.core.files.uploadedfile import UploadedFile, InMemoryUploadedFile
 from botocore.exceptions import NoCredentialsError
 from mypy_boto3_s3 import S3Client
 from io import BytesIO
@@ -51,12 +51,16 @@ class UrlField(serializers.Field):
         match self.label:
             case 'spraywall_image':
                 return 'spraywall'
+            case 'thumbnail_spraywall_image':
+                return 'thumbnail'
             case 'boulder_image':
                 return 'boulder'
             case 'profile_image':
                 return 'profile'
             case 'alt_wall_image':
                 return 'alt_spraywall'
+            case 'alt_wall_thumbnail_image':
+                return 'thumbnail'
             case _:
                 pass
     
