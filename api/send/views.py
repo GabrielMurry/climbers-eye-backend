@@ -1,12 +1,14 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from .serializers import SendList, SendDetail
 from .models import Send
 from ..user.models import Person
 from ..boulder.models import Boulder
+from ..boulder.serializers import BoulderSerializer
 from utils.constants import grade_labels
 from decimal import Decimal
+from rest_framework.response import Response
 
 class SendList(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -76,8 +78,22 @@ class SendList(generics.ListCreateAPIView):
             user_instance = Person.objects.get(id=self.request.user.id)
             boulder.first_ascensionist = user_instance
         boulder.save()
-        return self.create(request, *args, **kwargs)
-    
+        # Return the updated boulder
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        boulder_serializer = BoulderSerializer(boulder, context={'request': request})
+        print(boulder_serializer.data)
+        return Response(boulder_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    # def create(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     self.perform_create(serializer)
+    #     headers = self.get_success_headers(serializer.data)
+    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
 class SendDetail(generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = SendDetail

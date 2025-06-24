@@ -14,6 +14,7 @@ from..spraywall.models import SprayWall
 from utils.filters import BoulderFilter
 from rest_framework.request import Request
 from mypy_boto3_s3 import S3Client
+from utils.thumbnail import generate_thumbnail
 from PIL import Image, ImageOps
 import requests, sys
 from django.core.files.uploadedfile import InMemoryUploadedFile
@@ -116,24 +117,7 @@ class BoulderList(generics.ListCreateAPIView):
             print('Invalid file object type.')
         # altWallImage is an optional upload so this will either get the alt wall file or return None.
         uploaded_alt_wall_file = request.FILES.get('altWallImage')
-        thumbnail_uploaded_file: InMemoryUploadedFile | None = None
-        if uploaded_alt_wall_file:
-            # Make a copy of the uploaded file alt wall. Performing image manipulation with PIL will usually mutate the variable.
-            image_copy = BytesIO(uploaded_alt_wall_file.read())
-            uploaded_alt_wall_file.seek(0)
-            thumbnail = self.resize_image_to_720p(image_copy)
-            # Convert thumbnail image (which is a PIL image) to an InMemoryUploadedFile type.
-            in_mem_file = BytesIO()
-            thumbnail.save(in_mem_file, format="JPEG")
-            in_mem_file.seek(0)
-            thumbnail_uploaded_file = InMemoryUploadedFile(
-                file=in_mem_file,
-                field_name=None,
-                name=request.data.get('name'),
-                content_type=f'image/jpg',
-                size=in_mem_file.getbuffer().nbytes,
-                charset=None
-            )
+        thumbnail_uploaded_file = generate_thumbnail(uploaded_alt_wall_file, request.data.get('name'))
         name = request.data.get('name')
         description = request.data.get('description')
         publish = request.data.get('publish')

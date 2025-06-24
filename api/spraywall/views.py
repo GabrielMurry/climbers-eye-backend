@@ -4,6 +4,7 @@ from .models import SprayWall
 from urllib.parse import urlparse
 from rest_framework.response import Response
 from rest_framework.request import Request
+from utils.thumbnail import generate_thumbnail
 from mypy_boto3_s3 import S3Client
 import boto3, environ
 env = environ.Env()
@@ -40,6 +41,8 @@ class SpraywallList(generics.ListCreateAPIView):
         data['width'] = width
         data['height'] = height
         data['gym'] = gym
+        thumbnail_uploaded_file = generate_thumbnail(uploaded_file, name)
+        data['thumbnailUrl'] = thumbnail_uploaded_file
         # # _full_data is the private attribute holding request.data
         request._full_data = data
         return super().post(request, *args, **kwargs)

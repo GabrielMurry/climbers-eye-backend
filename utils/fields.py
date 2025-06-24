@@ -41,6 +41,7 @@ class UrlField(serializers.Field):
             s3_key = f"{folder}/{image.name}-{str(uuid.uuid4())}.{type}"
             s3.upload_fileobj(Fileobj=image, Bucket=BUCKET, Key=s3_key, ExtraArgs={'ContentType': image.content_type})
             image_url = f"https://{BUCKET}.s3.amazonaws.com/{s3_key}"
+            print(folder, s3_key)
             return image_url
         except NoCredentialsError:
             raise serializers.ValidationError("AWS credentials are missing or incorrect.")
