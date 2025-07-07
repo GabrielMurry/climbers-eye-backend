@@ -1,2 +1,3 @@
 # Spray-Backend
-Django backend for Climber's Eye (Spray).
+
+Django backend for Climber's Eye.
