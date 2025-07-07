@@ -8,6 +8,7 @@ from ..send.models import Send
 from ..circuit.models import Circuit
 from ..boulder.models import Boulder
 from ..boulder.serializers import BoulderSerializer
+from utils.pagination import CreatedCursorPagination
 from ..user.serializers import PersonSerializer
 from ..user.models import Person
 from .serializers import LogbookSerializer
@@ -18,6 +19,9 @@ env = environ.Env()
 environ.Env.read_env()
 s3 = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
                   aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'))
+
+class LogbookCursorPagination(CreatedCursorPagination):
+    ordering = ('-date_created', '-id')
     
 class LogbookList(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -45,12 +49,6 @@ class LogbookList(generics.ListAPIView):
             person=user_id
         )
 
-        # Subquery to get the send date
-        send_date_subquery = Send.objects.filter(
-            person=user_id,
-            boulder=OuterRef('pk')
-        ).values('date_created')[:1]
-
         return Boulder.objects.filter(
                 send__person=user_id, send__boulder__spraywall=spraywall_id
             ).annotate(
@@ -58,7 +56,7 @@ class LogbookList(generics.ListAPIView):
                 is_bookmarked=Exists(bookmarked_subquery),
                 is_sent=Exists(sent_subquery),
                 is_in_circuit=Exists(in_circuit_subquery),
-                send_date=Subquery(send_date_subquery)
+                send_date=Subquery(sent_subquery.values('date_created')[:1])
             ).order_by('-send__date_created')
 
     def list(self, request, *args, **kwargs):

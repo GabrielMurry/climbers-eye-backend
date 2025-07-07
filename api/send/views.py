@@ -1,14 +1,61 @@
 from rest_framework import generics, permissions, status
-from django.db.models import Count
+from django.db.models import Count, OuterRef, Subquery, Exists
 from django.shortcuts import get_object_or_404
 from .serializers import SendList, SendDetail
 from .models import Send
 from ..user.models import Person
 from ..boulder.models import Boulder
 from ..boulder.serializers import BoulderSerializer
+from ..bookmark.models import Bookmark
+from ..like.models import Like
+from ..circuit.models import Circuit
 from utils.constants import grade_labels
 from decimal import Decimal
 from rest_framework.response import Response
+from utils.pagination import CreatedCursorPagination
+
+class LogbookCursorPagination(CreatedCursorPagination):
+    ordering = ('-send_date')
+
+class SendLogbookList(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = BoulderSerializer
+    pagination_class = LogbookCursorPagination
+
+    def get_queryset(self):
+        spraywall_id = self.kwargs['spraywall_id']
+        user_id = self.request.user.id
+        print('testing......')
+
+        liked_subquery = Like.objects.select_related('person', 'boulder', 'date_created').filter(
+            boulder=OuterRef('pk'),
+            person=user_id
+        )
+        bookmarked_subquery = Bookmark.objects.select_related('person', 'boulder').filter(
+            boulder=OuterRef('pk'),
+            person=user_id
+        )
+        sent_subquery = Send.objects.select_related('person', 'boulder', 'date_created').filter(
+            boulder=OuterRef('pk'),
+            person=user_id
+        )
+        in_circuit_subquery = Circuit.objects.select_related('person', 'spraywall').filter(
+            boulders=OuterRef('pk'),
+            person=user_id
+        )
+
+        boulders = Boulder.objects.filter(
+                send__person=user_id, spraywall_id=spraywall_id
+            ).annotate(
+                is_liked=Exists(liked_subquery),
+                is_bookmarked=Exists(bookmarked_subquery),
+                is_sent=Exists(sent_subquery),
+                is_in_circuit=Exists(in_circuit_subquery),
+                send_date=Subquery(sent_subquery.values('date_created')[:1])
+            )
+        for boulder in boulders:
+            print(boulder.name)
+        return boulders
 
 class SendList(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]

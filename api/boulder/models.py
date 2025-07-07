@@ -19,7 +19,7 @@ class Boulder(models.Model):
     publish = models.BooleanField(default=True)
     feet_follow_hands = models.BooleanField(default=True) 
     kickboard_on = models.BooleanField(default=False) 
-    grade = models.PositiveIntegerField(blank=True, null=True)
+    grade = models.SmallIntegerField(default=-1)
     quality = models.DecimalField(max_digits=3, decimal_places=2, blank=True, null=True)
     sends_count = models.PositiveIntegerField(default=0)
     image_url = models.TextField()

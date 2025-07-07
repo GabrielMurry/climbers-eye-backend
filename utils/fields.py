@@ -76,4 +76,7 @@ class GradeField(serializers.Field):
     def to_internal_value(self, grade: str):
         return grade_labels.index(grade)
     def to_representation(self, grade: int):
-        return grade_labels[grade]
+        if grade == -1:
+            return None
+        else:
+            return grade_labels[grade]

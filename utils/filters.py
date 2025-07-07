@@ -9,7 +9,7 @@ class BoulderFilter(filters.FilterSet):
     activity = filters.CharFilter(method='activity_method')
     status = filters.CharFilter(method='status_method')
     circuit = filters.CharFilter(method='circuit_method')
-    sort = filters.CharFilter(method='sort_method')
+    # sort = filters.CharFilter(method='sort_method')
 
     class Meta:
         model = Boulder
@@ -20,7 +20,7 @@ class BoulderFilter(filters.FilterSet):
         min_grade = value.start
         max_grade = value.stop
         # Filter queryset from range of boulder grades given (inclusive) - includes all non-graded (project) boulders placed after the graded (established) boulders.
-        queryset = queryset.filter(Q(grade__gte=min_grade, grade__lte=max_grade) | Q(grade=None))
+        queryset = queryset.filter(Q(grade__gte=min_grade, grade__lte=max_grade) | Q(grade=-1))
         return queryset
     
     def activity_method(self, queryset, name, value):
@@ -38,9 +38,9 @@ class BoulderFilter(filters.FilterSet):
             case 'all':
                 pass
             case 'established':
-                queryset = queryset.filter(grade__isnull=False)
+                queryset = queryset.filter(grade__gte=0)
             case 'projects':
-                queryset = queryset.filter(grade__isnull=True)
+                queryset = queryset.filter(grade=-1)
             case 'drafts':
                 queryset = queryset.filter(setter=self.request.user.id, publish=False)
         return queryset
@@ -53,15 +53,15 @@ class BoulderFilter(filters.FilterSet):
             return queryset.filter(circuits__id=circuit_id)
             
 
-    def sort_method(self, queryset, name, value):
-        match value:
-            case 'grade': # order by grade (least difficult to greatest difficult)
-                queryset = queryset.order_by('grade')
-            case 'popular': # order by num of sends (greatest to least)
-                queryset = queryset.order_by('-sends_count')
-            case 'newest': # order by date created (newest to oldest)
-                queryset = queryset.order_by('-date_created')
-        return queryset
+    # def sort_method(self, queryset, name, value):
+    #     match value:
+    #         case 'grade': # order by grade (least difficult to greatest difficult)
+    #             queryset = queryset.order_by('grade')
+    #         case 'popular': # order by num of sends (greatest to least)
+    #             queryset = queryset.order_by('-sends_count')
+    #         case 'newest': # order by date created (newest to oldest)
+    #             queryset = queryset.order_by('-date_created')
+    #     return queryset
     
 class GymFilter(filters.FilterSet):
     search = filters.CharFilter(field_name='name', lookup_expr='icontains')

@@ -1,8 +1,8 @@
 from rest_framework import status, generics, permissions, mixins
 from rest_framework.response import Response
-from django.db.models import OuterRef, Exists, Q
-from django_filters import rest_framework as filters
-from utils.pagination import StandardPagination
+from django.db.models import OuterRef, Exists, Q, Value
+from django_filters.rest_framework import DjangoFilterBackend
+from utils.pagination import CreatedCursorPagination
 from .serializers import BoulderSerializer, BoulderDetailSerializer
 from ..circuit.serializers import CircuitSerializer
 from .models import Boulder
@@ -10,15 +10,13 @@ from ..circuit.models import Circuit
 from ..like.models import Like
 from ..send.models import Send
 from ..bookmark.models import Bookmark
-from..spraywall.models import SprayWall
 from utils.filters import BoulderFilter
 from rest_framework.request import Request
 from mypy_boto3_s3 import S3Client
 from utils.thumbnail import generate_thumbnail
+from django.db.models.functions import Coalesce
 from PIL import Image, ImageOps
-import requests, sys
-from django.core.files.uploadedfile import InMemoryUploadedFile
-from io import BytesIO
+from rest_framework.filters import OrderingFilter
 from urllib.parse import urlparse
 from django.core.files.uploadedfile import UploadedFile
 import boto3
@@ -28,12 +26,28 @@ environ.Env.read_env()
 s3: S3Client = boto3.client('s3', aws_access_key_id=env('AWS_ACCESS_KEY_ID'),
                   aws_secret_access_key=env('AWS_SECRET_ACCESS_KEY'), region_name='us-west-1')
 
+SORT_MAPPING = {
+    'popular': '-sends_count',
+    'newest': '-date_created',
+    'oldest': 'date_created',
+    'name': 'name',
+    'grade': '-grade',
+    'hardest': '-grade',
+    'easiest': 'grade',
+}
+
 class BoulderList(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = BoulderSerializer
-    filter_backends = (filters.DjangoFilterBackend,)
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = BoulderFilter
-    pagination_class = StandardPagination
+    ordering_fields = {
+        'grade':       ('grade', 'id'),        # tie-break on PK. Could have multiple of the same grade
+        'sends_count': ('sends_count', 'id'),
+        'date_created': ('date_created', 'id'),
+    }
+    ordering = ['sends_count', '-id']  # id is the tie breaker since sends_count and grade are not unique
+    pagination_class = CreatedCursorPagination
 
     def get_queryset(self):
         """
@@ -60,6 +74,12 @@ class BoulderList(generics.ListCreateAPIView):
             boulders=OuterRef('pk'),
             person=user_id
         )
+        ordering_param = self.request.query_params.get('ordering')
+        if ordering_param in SORT_MAPPING:
+            # NOTE: must override query_params immutability
+            self.request.query_params._mutable = True
+            self.request.query_params['ordering'] = SORT_MAPPING[ordering_param]
+            self.request.query_params._mutable = False
         # Filter boulders by the spraywall. Annotate (adding more attributes) for booleans of 
         # whether or not the user liked, bookmarked, sent boulder or put the the particular boulder in a circuit.
         # select_related: reduces number of database queries when getting foreign keys. Everything is done on initial query
@@ -76,7 +96,7 @@ class BoulderList(generics.ListCreateAPIView):
                 is_liked=Exists(liked_subquery),
                 is_bookmarked=Exists(bookmarked_subquery),
                 is_sent=Exists(sent_subquery),
-                is_in_circuit=Exists(in_circuit_subquery)
+                is_in_circuit=Exists(in_circuit_subquery),
             ).distinct()
     
     @staticmethod
